@@ -36,7 +36,7 @@ defmodule LeanLsp.MixProject do
     [
       name: :lean_lsp,
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/TODO/lean_lsp"}
+      links: %{"GitHub" => "https://github.com/zacky1972/lean_lsp"}
     ]
   end
 
