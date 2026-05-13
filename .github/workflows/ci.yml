@@ -34,6 +34,11 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
 
+      - name: Install Hex and Rebar
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+
       - name: Restore dependency cache
         uses: actions/cache@v5
         with:
@@ -53,8 +58,7 @@ jobs:
             ${{ runner.os }}-mix-build-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
 
       - name: Restore Dialyzer PLT cache
-        id: plt-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache@v5
         with:
           path: priv/plts
           key: ${{ runner.os }}-plt-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
@@ -63,17 +67,6 @@ jobs:
 
       - name: Install dependencies
         run: mix deps.get
-
-      - name: Build Dialyzer PLTs
-        if: steps.plt-cache.outputs.cache-hit != 'true'
-        run: mix dialyzer --plt
-
-      - name: Save Dialyzer PLT cache
-        if: steps.plt-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: priv/plts
-          key: ${{ steps.plt-cache.outputs.cache-primary-key }}
 
       - name: Run quality gate
         run: mix check
