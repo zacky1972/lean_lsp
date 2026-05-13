@@ -1,6 +1,6 @@
 # LeanLsp
 
-**TODO: Add description**
+LeanLsp is an OTP-native Elixir client for running and querying Lean's language server, with Docker-backed runtime support.
 
 ## Installation
 
