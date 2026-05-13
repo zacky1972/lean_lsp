@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  MIX_ENV: dev
+  ELIXIR_VERSION: "1.19.5"
+  OTP_VERSION: "28.5"
+
+jobs:
+  check:
+    name: mix check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Erlang/OTP and Elixir
+        id: beam
+        uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          version-type: strict
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+
+      - name: Install Hex and Rebar
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+
+      - name: Restore dependency cache
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-deps-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-deps-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+            ${{ runner.os }}-mix-deps-${{ env.MIX_ENV }}-
+
+      - name: Restore build cache
+        uses: actions/cache@v5
+        with:
+          path: _build
+          key: ${{ runner.os }}-mix-build-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-mix-build-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}-
+            ${{ runner.os }}-mix-build-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - name: Restore Dialyzer PLT cache
+        uses: actions/cache@v5
+        with:
+          path: priv/plts
+          key: ${{ runner.os }}-plt-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-plt-${{ env.MIX_ENV }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Run quality gate
+        run: mix check
