@@ -4,7 +4,15 @@ defmodule LeanLsp.Runtime.DockerTest do
   @moduletag :docker
 
   @image "lean-lsp-runtime-docker-acceptance:issue-7"
-  @identity_keys [:container_id, :container_name, :container, :docker_container, :id, :name]
+
+  @identity_keys [
+    :container_id,
+    :container_name,
+    :container,
+    :docker_container,
+    :id,
+    :name
+  ]
 
   if DockerAvailability.available?() do
     setup_all do
@@ -55,12 +63,14 @@ defmodule LeanLsp.Runtime.DockerTest do
   describe "start_link/1" do
     test "starts a runtime process from the configured Docker image and tracks container identity" do
       assert {:ok, pid} = LeanLsp.Runtime.Docker.start_link(image: @image)
+
       on_exit(fn -> cleanup_runtime(pid) end)
 
       assert is_pid(pid)
       assert Process.alive?(pid)
 
       identity = assert_container_identity!(pid)
+
       assert_container_running!(identity)
       assert docker_inspect!(identity, "{{.Config.Image}}") == @image
     end
@@ -72,16 +82,56 @@ defmodule LeanLsp.Runtime.DockerTest do
       assert Process.alive?(pid)
 
       identity = assert_container_identity!(pid)
+
       assert_container_running!(identity)
+    end
+  end
+
+  describe "exec/3" do
+    test "executes a command in the backing container and captures stdout" do
+      assert {:ok, pid} = LeanLsp.Runtime.Docker.start_link(image: @image)
+
+      on_exit(fn -> cleanup_runtime(pid) end)
+
+      assert {:ok, result} =
+               LeanLsp.Runtime.Docker.exec(
+                 pid,
+                 ["sh", "-c", "printf 'ok\n'"],
+                 timeout: 5_000
+               )
+
+      assert result.stdout == "ok\n"
+      assert result.stderr == ""
+      assert result.exit_status == 0
+    end
+
+    test "returns stderr and non-zero exit status without crashing the runtime" do
+      assert {:ok, pid} = LeanLsp.Runtime.Docker.start_link(image: @image)
+
+      on_exit(fn -> cleanup_runtime(pid) end)
+
+      assert {:ok, result} =
+               LeanLsp.Runtime.Docker.exec(
+                 pid,
+                 ["sh", "-c", "echo boom >&2; exit 7"],
+                 timeout: 5_000
+               )
+
+      assert result.stdout == ""
+      assert String.trim(result.stderr) == "boom"
+      assert result.exit_status == 7
+      assert Process.alive?(pid)
     end
   end
 
   describe "stop/1" do
     test "stops the runtime process and the backing container cleanly" do
       assert {:ok, pid} = LeanLsp.Runtime.Docker.start_link(image: @image)
+
       on_exit(fn -> cleanup_runtime(pid) end)
 
       identity = assert_container_identity!(pid)
+
       assert_container_running!(identity)
 
       assert :ok = LeanLsp.Runtime.Docker.stop(pid)
@@ -183,6 +233,7 @@ defmodule LeanLsp.Runtime.DockerTest do
 
   defp container_exists?(identity) when is_binary(identity) and identity != "" do
     {_output, status} = docker(["inspect", "--type", "container", identity])
+
     status == 0
   end
 
@@ -250,6 +301,12 @@ defmodule LeanLsp.Runtime.DockerTest do
   end
 
   defp docker(args) do
-    System.cmd("docker", args, stderr_to_stdout: true)
+    case DockerAvailability.executable() do
+      {:ok, docker} ->
+        System.cmd(docker, args, stderr_to_stdout: true)
+
+      {:error, reason} ->
+        {inspect(reason), 127}
+    end
   end
 end
