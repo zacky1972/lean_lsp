@@ -30,7 +30,7 @@ defmodule LeanLsp.Runtime.DockerExecTest do
                )
 
       on_exit(fn ->
-        _ = Docker.stop(runtime)
+        cleanup_runtime(runtime)
         restore_path(original_path)
         File.rm_rf(tmp_dir)
       end)
@@ -50,21 +50,33 @@ defmodule LeanLsp.Runtime.DockerExecTest do
       assert stdout =~ "Lean"
     end
 
-    test "returns a structured error for a failed command", %{runtime: runtime} do
-      assert {:error, {:command_failed, failure}} =
+    test "returns structured output for a failed command", %{runtime: runtime} do
+      assert {:ok, result} =
                Docker.exec(runtime, ["lean", "--definitely-invalid-option"], [])
 
       assert %{
-               command: ["lean", "--definitely-invalid-option"],
                stdout: stdout,
                stderr: stderr,
                exit_status: exit_status
-             } = failure
+             } = result
 
       assert is_binary(stdout)
       assert is_binary(stderr)
       assert exit_status > 0
       assert stderr =~ "--definitely-invalid-option"
+    end
+  end
+
+  defp cleanup_runtime(pid) when is_pid(pid) do
+    if Process.alive?(pid) do
+      try do
+        _ = Docker.stop(pid)
+        :ok
+      catch
+        :exit, _reason -> :ok
+      end
+    else
+      :ok
     end
   end
 
