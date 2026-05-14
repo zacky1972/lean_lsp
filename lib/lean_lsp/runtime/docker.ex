@@ -12,7 +12,7 @@ defmodule LeanLsp.Runtime.Docker do
 
   use GenServer
 
-  @default_image "leanprovercommunity/lean4:latest"
+  alias LeanLsp.Runtime.Config, as: RuntimeConfig
 
   @default_container_command [
     "sh",
@@ -168,13 +168,12 @@ defmodule LeanLsp.Runtime.Docker do
       container_name: Keyword.get(opts, :container_name),
       docker_run_args: Keyword.get(opts, :docker_run_args, []),
       env: Keyword.get(opts, :env, []),
-      image:
-        Keyword.get(opts, :image, Application.get_env(:lean_lsp, :docker_image, @default_image)),
+      image: Keyword.get(opts, :image, RuntimeConfig.default_docker_image()),
       mounts: Keyword.get(opts, :mounts, []),
       owner: Keyword.get(opts, :__owner__),
       start_timeout: Keyword.get(opts, :start_timeout, @default_start_timeout),
       stop_timeout: Keyword.get(opts, :stop_timeout, @default_stop_timeout),
-      workdir: Keyword.get(opts, :workdir)
+      workdir: docker_workdir(opts)
     }
 
     validate_options(config,
@@ -187,6 +186,18 @@ defmodule LeanLsp.Runtime.Docker do
       workdir: &optional_binary?/1,
       start_timeout: &valid_timeout?/1,
       stop_timeout: &valid_timeout?/1
+    )
+  end
+
+  defp docker_workdir(opts) do
+    Keyword.get(
+      opts,
+      :workdir,
+      Keyword.get(
+        opts,
+        :container_workspace_root,
+        Keyword.get(opts, :workspace_root, RuntimeConfig.default_container_workspace_root())
+      )
     )
   end
 

@@ -79,6 +79,28 @@ For the detailed boundary rules, see
 | `LeanLsp.Transport` | Byte-level LSP transport, including `Content-Length` framing, reads, writes, buffering, and transport errors. |
 | `LeanLsp.Protocol` | LSP and JSON-RPC data construction and parsing. It stays free of IO, process, and Docker concerns. |
 
+## Runtime configuration
+
+LeanLsp runtime configuration is explicit and normalized through
+`LeanLsp.Runtime.Config`.
+
+Defaults:
+
+| Option | Default |
+| --- | --- |
+| `:runtime` | `LeanLsp.Runtime.Docker` |
+| `:docker_image` | `leanprovercommunity/lean4:latest` |
+| `:container_workspace_root` | `/workspace` |
+
+Example:
+
+```elixir
+{:ok, runtime} =
+  LeanLsp.start_runtime(
+    docker_image: "leanprovercommunity/lean4:latest",
+    container_workspace_root: "/workspace"
+  )
+  
 ## Development setup
 
 ### Prerequisites
