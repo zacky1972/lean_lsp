@@ -30,7 +30,7 @@ defmodule LeanLsp.MixProject do
   def docs do
     [
       main: "readme",
-      extras: ["README.md"]
+      extras: ["README.md", "docs/module-responsibilities.md"]
     ]
   end
 
