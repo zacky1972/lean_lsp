@@ -72,5 +72,5 @@ jobs:
         run: mix check
 
       - name: Run test
-        run: mix test
+        run: MIX_ENV=test mix test
 
