@@ -54,7 +54,7 @@ defmodule LeanLsp.Runtime.DockerExecTest do
                Docker.exec(runtime, ["lean", "--definitely-invalid-option"], [])
 
       assert %{
-               command:  ["lean", "--definitely-invalid-option"],
+               command: ["lean", "--definitely-invalid-option"],
                stdout: stdout,
                stderr: stderr,
                exit_status: exit_status
