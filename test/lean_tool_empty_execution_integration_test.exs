@@ -41,12 +41,23 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
     args = ["run", "--rm", "--entrypoint", "", image, tool]
 
     case run_command(docker, args, @docker_run_timeout) do
-      {:ok, {output, exit_status}} ->
+      {:ok, {output, exit_status}} when exit_status in 0..124 ->
         assert_normal_container_command_exit!(docker, args, output, exit_status)
+
+      {:ok, {output, exit_status}} ->
+        flunk("""
+        container command failed: #{format_command(docker, args)}
+
+        exit status:
+        #{exit_status}
+
+        output:
+        #{output}
+        """)
 
       {:exit, reason} ->
         flunk("""
-        command crashed: #{format_command(docker, args)}
+        container command crashed: #{format_command(docker, args)}
 
         reason:
         #{inspect(reason)}
@@ -54,7 +65,7 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
 
       {:timeout, timeout} ->
         flunk("""
-        command timed out after #{timeout}ms: #{format_command(docker, args)}
+        container command timed out after #{timeout}ms: #{format_command(docker, args)}
         """)
     end
   end
@@ -109,7 +120,10 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
   end
 
   defp run_command(executable, args, timeout) do
-    task = Task.async(fn -> System.cmd(executable, args, stderr_to_stdout: true) end)
+    task =
+      Task.async(fn ->
+        System.cmd(executable, args, stderr_to_stdout: true)
+      end)
 
     case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
       {:ok, result} -> {:ok, result}
