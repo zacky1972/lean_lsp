@@ -75,7 +75,16 @@ defmodule LeanLsp.Runtime.Docker do
     {server_opts, runtime_opts} = Keyword.split(opts, @gen_server_options)
     runtime_opts = Keyword.put(runtime_opts, :__owner__, self())
 
-    GenServer.start_link(__MODULE__, runtime_opts, server_opts)
+    with {:ok, state} <- build_initial_state(runtime_opts) do
+      case GenServer.start_link(__MODULE__, state, server_opts) do
+        {:ok, _pid} = ok ->
+          ok
+
+        {:error, _reason} = error ->
+          _ignored = stop_container(state)
+          error
+      end
+    end
   end
 
   @impl LeanLsp.Runtime
@@ -94,34 +103,27 @@ defmodule LeanLsp.Runtime.Docker do
   end
 
   @impl GenServer
-  def init(opts) do
+  def init(%__MODULE__{} = state) do
+    Process.flag(:trap_exit, true)
+    {:ok, state}
+  end
+
+  defp build_initial_state(opts) do
     with {:ok, config} <- normalize_options(opts),
-         {:ok, docker_info} <- DockerAvailability.check() do
-      Process.flag(:trap_exit, true)
-
-      docker = docker_info.executable
-
-      case start_container(docker, config) do
-        {:ok, container_id} ->
-          {:ok,
-           %__MODULE__{
-             container_id: container_id,
-             container_name: config.container_name,
-             docker: docker,
-             docker_info: docker_info,
-             env: config.env,
-             image: config.image,
-             owner: config.owner,
-             stop_timeout: config.stop_timeout,
-             workdir: config.workdir
-           }}
-
-        {:error, reason} ->
-          {:stop, reason}
-      end
-    else
-      {:error, reason} ->
-        {:stop, reason}
+         {:ok, docker_info} <- DockerAvailability.check(),
+         {:ok, container_id} <- start_container(docker_info.executable, config) do
+      {:ok,
+       %__MODULE__{
+         container_id: container_id,
+         container_name: config.container_name,
+         docker: docker_info.executable,
+         docker_info: docker_info,
+         env: config.env,
+         image: config.image,
+         owner: config.owner,
+         stop_timeout: config.stop_timeout,
+         workdir: config.workdir
+       }}
     end
   end
 
