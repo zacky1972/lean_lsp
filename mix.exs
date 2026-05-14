@@ -14,7 +14,8 @@ defmodule LeanLsp.MixProject do
       docs: docs(),
       package: package(),
       aliases: aliases(),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      elixirc_paths: elixirc(Mix.env())
     ]
   end
 
@@ -90,4 +91,7 @@ defmodule LeanLsp.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
+
+  defp elixirc(:test), do: ["lib", "test/support"]
+  defp elixirc(_), do: ["lib"]
 end
