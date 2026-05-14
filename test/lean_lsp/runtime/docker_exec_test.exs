@@ -49,15 +49,16 @@ defmodule LeanLsp.Runtime.DockerExecTest do
       assert stdout =~ "Lean"
     end
 
-    test "returns structured output for a failed command", %{runtime: runtime} do
-      assert {:ok, result} =
+    test "returns a structured error for a failed command", %{runtime: runtime} do
+      assert {:error, {:command_failed, failure}} =
                Docker.exec(runtime, ["lean", "--definitely-invalid-option"], [])
 
       assert %{
+               command:  ["lean", "--definitely-invalid-option"],
                stdout: stdout,
                stderr: stderr,
                exit_status: exit_status
-             } = result
+             } = failure
 
       assert is_binary(stdout)
       assert is_binary(stderr)
