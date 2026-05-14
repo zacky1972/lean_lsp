@@ -2,6 +2,10 @@
 
 LeanLsp is an OTP-native Elixir client for running and querying Lean's language server, with Docker-backed runtime support.
 
+## Architecture notes
++
+See [Module responsibilities](docs/module-responsibilities.md) for the initial runtime and LSP module boundaries.
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
