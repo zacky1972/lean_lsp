@@ -41,6 +41,17 @@ defmodule LeanLsp.Runtime do
         }
 
   @typedoc """
+  Structured error details returned when an observed command exits non-zero.
+  """
+  @type command_failure :: %{
+          required(:command) => command(),
+          required(:stdout) => String.t(),
+          required(:stderr) => String.t(),
+          required(:exit_status) => pos_integer(),
+          optional(atom()) => term()
+        }
+
+  @typedoc """
   Implementation-specific error reason.
   """
   @type error_reason :: term()
@@ -67,8 +78,12 @@ defmodule LeanLsp.Runtime do
   @doc """
   Executes a command in a started runtime.
 
-  Returns `{:ok, result}` when the command finishes. The result includes
-  `stdout`, `stderr`, and an `exit_status`.
+  Returns `{:ok, result}` when the command exits successfully. The result includes
+  captured `stdout`, captured `stderr`, and `exit_status: 0`.
+
+  Returns `{:error, {:command_failed, failure}}` when the command is observed but
+  exits with a non-zero status. The failure map includes the original `command`,
+  captured `stdout`, captured `stderr`, and the non-zero `exit_status`.
 
   Returns `{:error, reason}` when execution cannot be started or observed, for
   example because the runtime is unavailable, the command cannot be launched, or

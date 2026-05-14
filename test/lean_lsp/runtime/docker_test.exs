@@ -127,21 +127,27 @@ defmodule LeanLsp.Runtime.DockerTest do
       assert result.exit_status == 0
     end
 
-    test "returns stderr and non-zero exit status without crashing the runtime" do
+    test "returns a structured error and keeps the runtime alive when a command exits non-zero" do
       assert {:ok, pid} = LeanLsp.Runtime.Docker.start_link(image: @image)
-
       on_exit(fn -> cleanup_runtime(pid) end)
 
-      assert {:ok, result} =
+      command = ["sh", "-c", "echo boom >&2; exit 7"]
+
+      assert {:error, {:command_failed, failure}} =
                LeanLsp.Runtime.Docker.exec(
                  pid,
-                 ["sh", "-c", "echo boom >&2; exit 7"],
+                 command,
                  timeout: 5_000
                )
 
-      assert result.stdout == ""
-      assert String.trim(result.stderr) == "boom"
-      assert result.exit_status == 7
+      assert %{
+               command: ^command,
+               stdout: "",
+               stderr: stderr,
+               exit_status: 7
+             } = failure
+
+      assert String.trim(stderr) == "boom"
       assert Process.alive?(pid)
     end
   end

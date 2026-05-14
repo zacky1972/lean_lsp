@@ -281,8 +281,32 @@ defmodule LeanLsp.Runtime.Docker do
           [state.container_id] ++
           command
 
-      docker_command(state.docker, args, exec_config.timeout)
+      state.docker
+      |> docker_command(args, exec_config.timeout)
+      |> normalize_exec_result(command)
     end
+  end
+
+  defp normalize_exec_result({:ok, %{exit_status: 0} = result}, _command) do
+    {:ok, result}
+  end
+
+  defp normalize_exec_result(
+         {:ok, %{exit_status: exit_status, stdout: stdout, stderr: stderr}},
+         command
+       ) do
+    {:error,
+     {:command_failed,
+      %{
+        command: command,
+        stdout: stdout,
+        stderr: stderr,
+        exit_status: exit_status
+      }}}
+  end
+
+  defp normalize_exec_result({:error, _reason} = error, _command) do
+    error
   end
 
   defp normalize_exec_options(state, opts) do
