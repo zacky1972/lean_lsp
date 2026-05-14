@@ -17,34 +17,6 @@ defmodule LeanLsp.RuntimeBehaviourTest do
     test "allows consumers to depend on the runtime behaviour without depending on Docker" do
       assert Code.ensure_loaded?(LeanLsp.Runtime)
 
-      assert {:module, _module, _binary, _term} =
-               defmodule LeanLsp.RuntimeBehaviourTest.FakeRuntime do
-                 @behaviour LeanLsp.Runtime
-
-                 @impl true
-                 def start_link(opts) when is_list(opts) do
-                   {:ok, %{runtime: __MODULE__, opts: opts}}
-                 end
-
-                 @impl true
-                 def stop(_runtime) do
-                   :ok
-                 end
-
-                 @impl true
-                 def exec(runtime, command, opts)
-                     when is_list(command) and is_list(opts) do
-                   {:ok,
-                    %{
-                      runtime: runtime,
-                      command: command,
-                      stdout: "ok\n",
-                      stderr: "",
-                      exit_status: 0
-                    }}
-                 end
-               end
-
       runtime_module = LeanLsp.RuntimeBehaviourTest.FakeRuntime
 
       assert {:ok, runtime} = runtime_module.start_link(workdir: "/workspace")
