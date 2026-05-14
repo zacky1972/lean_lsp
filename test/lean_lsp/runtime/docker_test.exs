@@ -85,6 +85,28 @@ defmodule LeanLsp.Runtime.DockerTest do
 
       assert_container_running!(identity)
     end
+
+    test "uses the configured Docker image and container workspace root" do
+      workspace_root = "/configured-workspace"
+
+      assert {:ok, pid} =
+               LeanLsp.Runtime.Docker.start_link(
+                 image: @image,
+                 container_workspace_root: workspace_root
+               )
+
+      on_exit(fn -> cleanup_runtime(pid) end)
+
+      identity = assert_container_identity!(pid)
+
+      assert docker_inspect!(identity, "{{.Config.Image}}") == @image
+      assert docker_inspect!(identity, "{{.Config.WorkingDir}}") == workspace_root
+
+      assert {:ok, result} =
+               LeanLsp.Runtime.Docker.exec(pid, ["pwd"], timeout: 5_000)
+
+      assert String.trim(result.stdout) == workspace_root
+    end
   end
 
   describe "exec/3" do
