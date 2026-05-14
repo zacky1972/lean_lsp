@@ -22,8 +22,7 @@ defmodule LeanLsp.Runtime.DockerExecTest do
       assert {:ok, runtime} =
                Docker.start_link(
                  image: "leanprovercommunity/lean4:latest",
-                 container_name:
-                   "lean-lsp-exec-test-#{System.unique_integer([:positive])}",
+                 container_name: "lean-lsp-exec-test-#{System.unique_integer([:positive])}",
                  workdir: "/workspace",
                  start_timeout: 1_000,
                  stop_timeout: 1_000
