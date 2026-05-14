@@ -15,7 +15,8 @@ defmodule LeanLsp.MixProject do
       package: package(),
       aliases: aliases(),
       dialyzer: dialyzer(),
-      elixirc_paths: elixirc(Mix.env())
+      elixirc_paths: elixirc(Mix.env()),
+      test_ignore_filters: ["test/support/fake_runtime.ex"]
     ]
   end
 

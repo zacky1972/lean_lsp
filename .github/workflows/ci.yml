@@ -18,7 +18,7 @@ env:
 
 jobs:
   check:
-    name: mix check
+    name: mix check & test
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -70,3 +70,7 @@ jobs:
 
       - name: Run quality gate
         run: mix check
+
+      - name: Run test
+        run: MIX_ENV=test mix test
+
