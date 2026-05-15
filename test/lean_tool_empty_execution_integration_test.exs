@@ -26,7 +26,7 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
     assert_bare_tool_execution!(image, "lean")
   end
 
-  @tag timeout: @lake_build_timeout + @docker_run_timeout + @docker_info_timeout + 10_000
+  @tag timeout: @lake_build_timeout + @docker_run_timeout + @docker_info_timeout * 3 + 10_000
   test "Docker runtime can build a minimal Lake project", %{image: image} do
     workspace = temporary_workspace!("minimal_lake_project")
     File.cp_r!(@minimal_lake_project_fixture, workspace)
@@ -42,6 +42,8 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
                )
 
       try do
+        pin_workspace_toolchain_to_image_default!(runtime, workspace)
+
         assert {:ok, %{exit_status: 0, stdout: stdout, stderr: stderr}} =
                  Docker.exec(
                    runtime,
@@ -83,6 +85,119 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
       )
 
     :ok
+  end
+
+  defp pin_workspace_toolchain_to_image_default!(runtime, workspace) do
+    toolchain = image_default_toolchain!(runtime)
+
+    workspace
+    |> Path.join("lean-toolchain")
+    |> File.write!(toolchain <> "\n")
+  end
+
+  defp image_default_toolchain!(runtime) do
+    assert {:ok, %{exit_status: 0, stdout: stdout, stderr: stderr}} =
+             Docker.exec(
+               runtime,
+               ["elan", "show"],
+               timeout: @docker_info_timeout,
+               workdir: "/"
+             )
+
+    case active_toolchain_from_elan_show(stdout) do
+      {:ok, toolchain} ->
+        toolchain
+
+      :error ->
+        flunk("""
+        could not determine active Lean toolchain from `elan show`.
+
+        stdout:
+        #{stdout}
+
+        stderr:
+        #{stderr}
+        """)
+    end
+  end
+
+  defp active_toolchain_from_elan_show(stdout) do
+    lines =
+      stdout
+      |> String.split("\n")
+      |> Enum.map(&String.trim/1)
+
+    with {:ok, active_toolchain} <- active_toolchain_token(lines) do
+      if channel_toolchain?(active_toolchain) do
+        concrete_toolchain_token(lines) || {:ok, active_toolchain}
+      else
+        {:ok, active_toolchain}
+      end
+    end
+  end
+
+  defp active_toolchain_token(lines) do
+    case Enum.drop_while(lines, &(&1 != "active toolchain")) do
+      [] ->
+        :error
+
+      [_heading, _separator | rest] ->
+        Enum.find_value(rest, :error, fn line ->
+          case toolchain_token(line) do
+            nil -> false
+            token -> {:ok, token}
+          end
+        end)
+    end
+  end
+
+  defp concrete_toolchain_token(lines) do
+    Enum.find_value(lines, fn line ->
+      case toolchain_token(line) do
+        nil ->
+          false
+
+        token ->
+          if concrete_toolchain?(token), do: {:ok, token}, else: false
+      end
+    end)
+  end
+
+  defp toolchain_token(line) do
+    cond do
+      line == "" ->
+        nil
+
+      String.starts_with?(line, "-") ->
+        nil
+
+      line in ["installed toolchains", "active toolchain"] ->
+        nil
+
+      String.starts_with?(line, "Lean ") ->
+        nil
+
+      true ->
+        line
+        |> String.split(" ", parts: 2)
+        |> hd()
+    end
+  end
+
+  defp channel_toolchain?(toolchain) do
+    toolchain in [
+      "stable",
+      "nightly",
+      "leanprover/lean4:stable",
+      "leanprover/lean4:nightly"
+    ]
+  end
+
+  defp concrete_toolchain?(toolchain) do
+    Regex.match?(
+      ~r/^(leanprover\/lean4:)?(v\d+\.\d+\.\d+(?:-[A-Za-z0-9._-]+)?|nightly-\d{4}-\d{2}-\d{2})$/,
+      toolchain
+    )
   end
 
   defp lean_docker_image do
