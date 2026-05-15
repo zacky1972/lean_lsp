@@ -1,23 +1,27 @@
 defmodule LeanLsp.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/zacky1972/lean_lsp"
+  @hexdocs_url "https://hexdocs.pm/lean_lsp"
+
   def project do
     [
       app: :lean_lsp,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      description:
-        "Experimental Lean LSP foundation and Docker runtime preview for Elixir; full LSP client support is roadmap work.",
-      name: "Lean lsp",
+      description: description(),
+      name: "LeanLsp",
+      source_url: @source_url,
+      homepage_url: @source_url,
       docs: docs(),
       package: package(),
       aliases: aliases(),
       dialyzer: dialyzer(),
       elixirc_paths: elixirc(Mix.env()),
-      test_ignore_filters: ["test/support/fake_runtime.ex"],
-      dialyzer: [plt_file: {:no_warn, "priv/plts/project.plt"}]
+      test_ignore_filters: ["test/support/fake_runtime.ex"]
     ]
   end
 
@@ -31,21 +35,20 @@ defmodule LeanLsp.MixProject do
   def docs do
     [
       main: "readme",
-      extras: [
-        "README.md",
-        "CHANGELOG.md",
-        "LICENSE.md",
-        "docs/release-scope-and-stability.md",
-        "docs/module-responsibilities.md"
-      ]
+      source_ref: "main",
+      extras: docs_extras()
     ]
   end
 
   def package do
     [
-      name: :lean_lsp,
+      name: "lean_lsp",
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/zacky1972/lean_lsp"}
+      links: %{
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
+        "GitHub" => @source_url,
+        "HexDocs" => @hexdocs_url
+      }
     ]
   end
 
@@ -82,8 +85,26 @@ defmodule LeanLsp.MixProject do
   def dialyzer do
     [
       plt_add_apps: [:mix],
+      plt_file: {:no_warn, "priv/plts/project.plt"},
       ignore_warnings: ".dialyzer_ignore.exs"
     ]
+  end
+
+  defp description do
+    "Experimental Lean LSP foundation and Docker runtime preview for Elixir; full LSP client support is roadmap work."
+  end
+
+  defp docs_extras do
+    [
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE.md",
+      "docs/hex-package-metadata.md",
+      "docs/release-scope-and-stability.md",
+      "docs/module-responsibilities.md"
+    ]
+    |> Enum.uniq()
+    |> Enum.filter(&File.exists?/1)
   end
 
   # Run "mix help deps" to learn about dependencies.
