@@ -38,34 +38,40 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
   end
 
   defp assert_command_success!(args, timeout) do
-    {:ok, docker} = DockerAvailability.executable()
+    case DockerAvailability.executable() do
+      {:ok, docker} ->
+        case run_command(docker, args, timeout) do
+          {:ok, {_output, exit_status}} when exit_status in 0..124 ->
+            :ok
 
-    case run_command(docker, args, timeout) do
-      {:ok, {_output, exit_status}} when exit_status in 0..124 ->
-        :ok
+          {:ok, {output, exit_status}} ->
+            flunk("""
+            container command failed: #{format_command(docker, args)}
 
-      {:ok, {output, exit_status}} ->
+            exit status:
+            #{exit_status}
+
+            output:
+            #{output}
+            """)
+
+          {:exit, reason} ->
+            flunk("""
+            container command crashed: #{format_command(docker, args)}
+
+            reason:
+            #{inspect(reason)}
+            """)
+
+          {:timeout, timeout} ->
+            flunk("""
+            container command timed out after #{timeout}ms: #{format_command(docker, args)}
+            """)
+        end
+
+      _ ->
         flunk("""
-        container command failed: #{format_command(docker, args)}
-
-        exit status:
-        #{exit_status}
-
-        output:
-        #{output}
-        """)
-
-      {:exit, reason} ->
-        flunk("""
-        container command crashed: #{format_command(docker, args)}
-
-        reason:
-        #{inspect(reason)}
-        """)
-
-      {:timeout, timeout} ->
-        flunk("""
-        container command timed out after #{timeout}ms: #{format_command(docker, args)}
+        docker not found.
         """)
     end
   end
