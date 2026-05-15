@@ -11,45 +11,49 @@ defmodule LeanLsp.DockerImagePullIntegrationTest do
 
   @tag timeout: @docker_pull_timeout + @docker_info_timeout + 5_000
   test "configured Lean Docker image can be pulled" do
-    docker = System.find_executable("docker") || flunk("docker executable was not found on PATH")
     image = lean_docker_image()
-
-    assert_command_success!(docker, ["info"], @docker_info_timeout)
-    assert_command_success!(docker, ["pull", image], @docker_pull_timeout)
+    assert_command_success!(["info"], @docker_info_timeout)
+    assert_command_success!(["pull", image], @docker_pull_timeout)
   end
 
   defp lean_docker_image do
     System.get_env(@docker_image_env, RuntimeConfig.default_docker_image())
   end
 
-  defp assert_command_success!(executable, args, timeout) do
-    case run_command(executable, args, timeout) do
-      {:ok, {_output, 0}} ->
-        :ok
+  defp assert_command_success!(args, timeout) do
+    case DockerAvailability.executable() do
+      {:ok, docker} ->
+        case run_command(docker, args, timeout) do
+          {:ok, {_output, 0}} ->
+            :ok
 
-      {:ok, {output, exit_status}} ->
-        flunk("""
-        command failed: #{format_command(executable, args)}
+          {:ok, {output, exit_status}} ->
+            flunk("""
+            command failed: #{format_command(docker, args)}
 
-        exit status:
-        #{exit_status}
+            exit status:
+            #{exit_status}
 
-        output:
-        #{output}
-        """)
+            output:
+            #{output}
+            """)
 
-      {:exit, reason} ->
-        flunk("""
-        command crashed: #{format_command(executable, args)}
+          {:exit, reason} ->
+            flunk("""
+            command crashed: #{format_command(docker, args)}
 
-        reason:
-        #{inspect(reason)}
-        """)
+            reason:
+            #{inspect(reason)}
+            """)
 
-      {:timeout, timeout} ->
-        flunk("""
-        command timed out after #{timeout}ms: #{format_command(executable, args)}
-        """)
+          {:timeout, timeout} ->
+            flunk("""
+            command timed out after #{timeout}ms: #{format_command(docker, args)}
+            """)
+        end
+
+      _ ->
+        flunk("Docker is not available")
     end
   end
 
