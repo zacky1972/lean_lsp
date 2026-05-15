@@ -13,6 +13,7 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
   @lake_build_timeout 120_000
   @workspace_mount "/workspace"
   @minimal_lake_project_fixture Path.expand("fixtures/minimal_lake_project", __DIR__)
+  @test_workspace_root Path.expand("../tmp/lean_lsp_test_workspaces", __DIR__)
 
   setup_all do
     assert_command_success!(["info"], @docker_info_timeout)
@@ -26,16 +27,9 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
     assert_bare_tool_execution!(image, "lean")
   end
 
-  @tag timeout: @lake_build_timeout + @docker_run_timeout + @docker_info_timeout * 2 + 10_000
+  @tag timeout: @lake_build_timeout + @docker_run_timeout + @docker_info_timeout * 3 + 10_000
   test "Docker runtime can build a minimal Lake project", %{image: image} do
-    workspace = temporary_workspace!("minimal_lake_project")
-    File.cp_r!(@minimal_lake_project_fixture, workspace)
-
-    # This boundary test is about LeanLsp.Runtime.Docker + lake build,
-    # not about elan resolving or downloading a project-specific toolchain.
-    # Keep the fixture self-contained, but use the image's already configured
-    # default toolchain in the copied runtime workspace.
-    remove_project_toolchain_override!(workspace)
+    workspace = prepare_minimal_lake_workspace!()
 
     try do
       assert {:ok, runtime} =
@@ -49,6 +43,7 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
                )
 
       try do
+        assert_workspace_visible_in_container!(runtime, image)
         assert_lake_build_smoke_success!(runtime, image)
       after
         clean_runtime_workspace(runtime)
@@ -67,10 +62,14 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
   end
 
   defp temporary_workspace!(fixture_name) do
-    Path.join([
-      System.tmp_dir!(),
-      "lean_lsp_#{fixture_name}_#{System.unique_integer([:positive])}"
-    ])
+    workspace =
+      Path.join(
+        @test_workspace_root,
+        "#{fixture_name}_#{System.system_time(:nanosecond)}_#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    File.mkdir_p!(workspace)
+    workspace
   end
 
   defp clean_runtime_workspace(runtime) do
@@ -243,4 +242,111 @@ defmodule LeanLsp.LeanToolEmptyExecutionIntegrationTest do
 
   defp empty_as_marker(""), do: "<empty>"
   defp empty_as_marker(output), do: output
+
+  defp prepare_minimal_lake_workspace! do
+    workspace = temporary_workspace!("minimal_lake_project")
+
+    copy_fixture_contents!(@minimal_lake_project_fixture, workspace)
+
+    # Keep the checked-in fixture self-contained, but avoid forcing this
+    # Docker boundary test through elan's project-specific toolchain resolution.
+    remove_project_toolchain_override!(workspace)
+
+    assert_required_fixture_files!(workspace)
+
+    workspace
+  end
+
+  defp copy_fixture_contents!(fixture_dir, workspace) do
+    assert File.dir?(fixture_dir), "missing fixture directory: #{fixture_dir}"
+
+    fixture_dir
+    |> File.ls!()
+    |> Enum.each(fn entry ->
+      File.cp_r!(
+        Path.join(fixture_dir, entry),
+        Path.join(workspace, entry)
+      )
+    end)
+
+    :ok
+  end
+
+  defp assert_required_fixture_files!(workspace) do
+    for relative_path <- ["lakefile.lean", "Smoke.lean"] do
+      path = Path.join(workspace, relative_path)
+
+      assert File.exists?(path), """
+      fixture file is missing before Docker mount.
+
+      expected:
+      #{path}
+
+      workspace:
+      #{workspace}
+
+      workspace entries:
+      #{workspace_listing(workspace)}
+      """
+    end
+
+    :ok
+  end
+
+  defp workspace_listing(workspace) do
+    workspace
+    |> File.ls!()
+    |> Enum.sort()
+    |> Enum.join("\n")
+  end
+
+  defp assert_workspace_visible_in_container!(runtime, image) do
+    command = [
+      "sh",
+      "-c",
+      "pwd; echo '-- workspace files --'; ls -la; test -f lakefile.lean && test -f Smoke.lean"
+    ]
+
+    case Docker.exec(runtime, command, timeout: @docker_info_timeout) do
+      {:ok, %{exit_status: 0, stdout: stdout, stderr: stderr}} ->
+        assert stdout =~ @workspace_mount
+        refute stderr =~ "No such file"
+
+        :ok
+
+      {:error, {:command_failed, failure}} ->
+        flunk("""
+        minimal Lake project fixture is not visible in the Docker workspace.
+
+        This means the test has not reached the `lake build Smoke` boundary yet.
+        Check the host workspace copy and Docker bind mount.
+
+        image:
+        #{image}
+
+        command:
+        #{inspect(failure.command)}
+
+        exit status:
+        #{failure.exit_status}
+
+        stdout:
+        #{empty_as_marker(failure.stdout)}
+
+        stderr:
+        #{empty_as_marker(failure.stderr)}
+        """)
+
+      other ->
+        flunk("""
+        Docker workspace visibility check returned an unexpected result.
+
+        image:
+        #{image}
+
+        result:
+        #{inspect(other)}
+        """)
+    end
+  end
 end
