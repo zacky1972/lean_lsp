@@ -1,34 +1,61 @@
 # LeanLsp
 
-LeanLsp is an OTP-native Elixir client for running and querying Lean's
-language server, with Docker-backed runtime support.
+LeanLsp is an experimental Lean LSP foundation and Docker runtime preview for Elixir.
 
-## Status and next target
+Version 0.1.0 is intentionally a foundation/runtime-preview release. It is suitable for trying the package metadata, runtime configuration, and Docker-backed runtime boundary, but it is not a production-ready Lean LSP client yet.
 
-LeanLsp is currently in repository foundation work. The next implementation
-target is **Milestone 1: Docker Runtime Foundation**.
+## Release status
 
-The project is Docker-first: the Docker runtime is implemented before LSP
-client support. Milestone 1 establishes the runtime that can start, stop, and
-communicate with Lean's language server through Docker. Milestone 2 then builds
-the minimal Lean LSP client on top of that runtime.
+v0.1.0 should be published, if at all, as a **foundation/runtime-preview** release rather than as a complete language-server client.
 
-The Lean fixture project for integration testing is deferred, so the current
-repository does not assume that `test/fixtures/simple_project/` exists.
+The release is intended to make the runtime boundary installable from Hex while keeping the user-facing contract narrow and explicit. The package does not yet provide application-level Lean query helpers, document lifecycle management, diagnostics collection, hover/completion APIs, or other stable LSP request flows.
+
+## Supported in v0.1.0
+
+The following public surface is stable enough for users to try during the 0.1.x line:
+
+- Package metadata, ExDoc/HexDocs pages, repository quality gate, and architecture notes.
+- Runtime configuration normalization through `LeanLsp.runtime_config/1`.
+- Runtime startup through `LeanLsp.start_runtime/1`.
+- The `LeanLsp.Runtime` behaviour contract for runtime implementations.
+- The Docker-backed runtime implementation in `LeanLsp.Runtime.Docker`, including container startup, command execution through `exec/3`, and cleanup through `stop/1`.
+- The documented runtime defaults:
+  - `:runtime` - `LeanLsp.Runtime.Docker`
+  - `:docker_image` - `leanprovercommunity/lean4:latest`
+  - `:container_workspace_root` - `/workspace`
+
+## Not supported yet
+
+The following features are roadmap work and should not be treated as available in v0.1.0:
+
+- A production-ready Lean LSP client.
+- Stable application-level APIs for Lean LSP requests.
+- `LeanLsp.Session`, `LeanLsp.Transport`, and `LeanLsp.Protocol` implementations as public user APIs.
+- Lean document open/change/close lifecycle management.
+- Diagnostics, hover, completion, go-to-definition, or other editor-style query helpers.
+- A Lean fixture project for integration testing.
+- Compatibility guarantees for Docker command internals, runtime process state, or implementation-specific error tuple shapes beyond the documented behaviour return contracts.
+
+## 0.x compatibility policy
+
+LeanLsp follows an experimental 0.x policy:
+
+- Patch releases in the same 0.x minor line should avoid breaking the documented public contract unless a correction is required for safety or correctness.
+- Minor 0.x releases may change, rename, or remove preview APIs when the runtime and LSP client design evolves.
+- APIs, modules, options, and error shapes not documented as part of the public contract may change without deprecation during 0.x.
+- Production users should pin compatible versions conservatively and review changelogs before upgrading.
 
 ## Roadmap
 
 | Milestone | Focus | Outcome |
 | --- | --- | --- |
-| Milestone 0: Repository Foundation Completion | Finish repository-level foundations: package metadata, CI quality gate, module responsibility notes, and this README. The Lean fixture project is deferred. | Contributors can understand the roadmap, quality gate, and initial module boundaries before runtime work starts. |
-| Milestone 1: Docker Runtime Foundation | Implement `LeanLsp.Runtime` and `LeanLsp.Runtime.Docker`. | The project can manage a Docker-backed Lean language server process without exposing Docker details to the LSP client layer. |
-| Milestone 2: Minimal Lean LSP Client over Docker | Implement the first usable Session, Transport, and Protocol flow over the Docker runtime. | Application code can start a session and send minimal LSP requests to Lean through the Docker-backed runtime. |
+| v0.1.0: Foundation/runtime preview | Package metadata, quality gate, architecture notes, runtime configuration, and Docker-backed runtime boundary. | Users can install the package from Hex, read the public stability policy, and experiment with the runtime layer without expecting a complete LSP client. |
+| Next: Minimal Lean LSP client over Docker | Implement the first usable session, transport, and protocol flow over the Docker runtime. | Application code can start a session and send minimal LSP requests to Lean through the Docker-backed runtime. |
+| Later: Integration fixtures and production hardening | Add Lean fixture projects, integration tests, richer LSP methods, and reliability work. | Users can evaluate production readiness based on tested Lean LSP workflows. |
 
 ## Architecture
 
-LeanLsp separates runtime execution from the LSP client layer. Docker-specific
-code belongs in `LeanLsp.Runtime.Docker`; Session, Transport, and Protocol code
-use the runtime abstraction instead of calling Docker directly.
+LeanLsp separates runtime execution from the LSP client layer. Docker-specific code belongs in `LeanLsp.Runtime.Docker`; future Session, Transport, and Protocol code should use the runtime abstraction instead of calling Docker directly.
 
 ```text
 Application code
@@ -65,24 +92,22 @@ Application code
 Lean language server
 ```
 
-For the detailed boundary rules, see
-[Module responsibilities](docs/module-responsibilities.md).
+For the detailed boundary rules, see [Module responsibilities](docs/module-responsibilities.md). For the release contract, see [Release scope and stability](docs/release-scope-and-stability.md).
 
 ## Module responsibilities
 
-| Module | Responsibility |
-| --- | --- |
-| `LeanLsp` | Public API for application code. It validates user options, starts sessions, and delegates internal work. |
-| `LeanLsp.Runtime` | Runtime contract for starting, stopping, and communicating with a Lean language server process. |
-| `LeanLsp.Runtime.Docker` | Docker-backed implementation of the runtime contract, including image selection, container setup, mounts, process startup, and cleanup. |
-| `LeanLsp.Session` | LSP conversation state, including initialization state, request identifiers, pending requests, document state, and diagnostics state. |
-| `LeanLsp.Transport` | Byte-level LSP transport, including `Content-Length` framing, reads, writes, buffering, and transport errors. |
-| `LeanLsp.Protocol` | LSP and JSON-RPC data construction and parsing. It stays free of IO, process, and Docker concerns. |
+| Module | v0.1.0 status | Responsibility |
+| --- | --- | --- |
+| `LeanLsp` | Public preview API | Public entry point for application code. In v0.1.0 it validates runtime options and starts runtimes. |
+| `LeanLsp.Runtime` | Public preview API | Runtime behaviour for starting, stopping, and executing commands in a Lean-capable runtime. |
+| `LeanLsp.Runtime.Docker` | Public preview API | Docker-backed implementation of the runtime contract, including image selection, container setup, command execution, and cleanup. |
+| `LeanLsp.Session` | Roadmap | Future LSP conversation state, including initialization state, request identifiers, pending requests, document state, and diagnostics state. |
+| `LeanLsp.Transport` | Roadmap | Future byte-level LSP transport, including `Content-Length` framing, reads, writes, buffering, and transport errors. |
+| `LeanLsp.Protocol` | Roadmap | Future LSP and JSON-RPC data construction and parsing. It should stay free of IO, process, and Docker concerns. |
 
 ## Runtime configuration
 
-LeanLsp runtime configuration is explicit and normalized through
-`LeanLsp.Runtime.Config`.
+LeanLsp runtime configuration is explicit and normalized through `LeanLsp.Runtime.Config`.
 
 Defaults:
 
@@ -100,13 +125,14 @@ Example:
     docker_image: "leanprovercommunity/lean4:latest",
     container_workspace_root: "/workspace"
   )
-  
+```
+
 ## Development setup
 
 ### Prerequisites
 
 - Elixir and Erlang/OTP versions compatible with `mix.exs`.
-- Docker for Milestone 1 and later runtime work.
+- Docker for the runtime preview path.
 - A local Lean installation is not required for the Docker-first runtime path.
 
 ### Install dependencies
@@ -123,8 +149,7 @@ mix deps.get
 mix check
 ```
 
-Run `mix check` before opening a pull request. It is the repository quality gate
-used by CI.
+Run `mix check` before opening a pull request. It is the repository quality gate used by CI.
 
 ### Run local pre-commit checks
 
@@ -132,13 +157,11 @@ used by CI.
 mix precommit
 ```
 
-`mix precommit` is intended for local use when you want formatting fixes and the
-full local validation path.
+`mix precommit` is intended for local use when you want formatting fixes and the full local validation path.
 
 ## Installation
 
-If the package is available in Hex, it can be installed by adding `lean_lsp` to
-your list of dependencies in `mix.exs`:
+If the package is available in Hex, it can be installed by adding `lean_lsp` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -148,7 +171,14 @@ def deps do
 end
 ```
 
-Documentation can be generated with
-[ExDoc](https://github.com/elixir-lang/ex_doc) and published on
-[HexDocs](https://hexdocs.pm). Once published, the docs can be found at
-[https://hexdocs.pm/lean_lsp](https://hexdocs.pm/lean_lsp).
+Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc) and published on [HexDocs](https://hexdocs.pm). Once published, the docs can be found at [https://hexdocs.pm/lean_lsp](https://hexdocs.pm/lean_lsp).
+
+## License
+
+Copyright (c) 2026 University of Kitakyushu
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.

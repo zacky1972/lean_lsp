@@ -9,7 +9,7 @@ defmodule LeanLsp.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description:
-        "an OTP-native Elixir client for running and querying Lean's language server, with Docker-backed runtime support.",
+        "Experimental Lean LSP foundation and Docker runtime preview for Elixir; full LSP client support is roadmap work.",
       name: "Lean lsp",
       docs: docs(),
       package: package(),
@@ -31,7 +31,13 @@ defmodule LeanLsp.MixProject do
   def docs do
     [
       main: "readme",
-      extras: ["README.md", "docs/module-responsibilities.md"]
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE.md",
+        "docs/release-scope-and-stability.md",
+        "docs/module-responsibilities.md"
+      ]
     ]
   end
 
