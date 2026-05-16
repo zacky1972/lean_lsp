@@ -55,7 +55,7 @@ When calling `LeanLsp.Runtime.Docker.start_link/1` directly, use the runtime
 `:container_workspace_root` configures the working directory inside the
 container. It does not automatically mount a host directory.
 
-Host filesystem access is opt-in through runtime-specific mount options:
+Host filesystem access is opt-in through the runtime-specific `:mounts` option:
 
 ```elixir
 {:ok, runtime} =
