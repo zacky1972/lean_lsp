@@ -1,6 +1,12 @@
 defmodule LeanLsp.Runtime.Command do
   @moduledoc false
 
+  @typep output_result :: %{
+           required(:stdout) => String.t(),
+           required(:stderr) => String.t(),
+           optional(atom()) => term()
+         }
+
   @spec normalize(term()) ::
           {:ok, LeanLsp.Runtime.command()} | {:error, {:invalid_command, term()}}
   def normalize([executable | _args] = command) when is_binary(executable) do
@@ -35,7 +41,7 @@ defmodule LeanLsp.Runtime.Command do
 
   def normalize_exec_result({:error, _reason} = error, _command), do: error
 
-  @spec output(%{required(:stdout) => String.t(), required(:stderr) => String.t()}) :: String.t()
+  @spec output(output_result()) :: String.t()
   def output(result) do
     [result.stdout, result.stderr]
     |> Enum.reject(&(&1 == ""))
