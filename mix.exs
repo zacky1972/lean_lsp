@@ -50,6 +50,7 @@ defmodule LeanLsp.MixProject do
         "Release readiness": [
           "CHANGELOG.md",
           "docs/hex-package-metadata.md",
+          "docs/dependency-audit.md",
           "docs/release-scope-and-stability.md",
           "docs/module-responsibilities.md",
           "docs/runtime-dependency-and-docker-policy.md"
@@ -88,6 +89,10 @@ defmodule LeanLsp.MixProject do
     [
       "package.contents": [
         "cmd sh scripts/check_hex_package_contents.sh"
+      ],
+      "dependency.audit": [
+        "deps.unlock --check-unused",
+        "cmd mix hex.publish --dry-run --yes"
       ],
       check: [
         "hex.audit",
@@ -141,6 +146,7 @@ defmodule LeanLsp.MixProject do
       "CHANGELOG.md",
       "LICENSE.md",
       "docs/hex-package-metadata.md",
+      "docs/dependency-audit.md",
       "docs/release-scope-and-stability.md",
       "docs/runtime-dependency-and-docker-policy.md",
       "docs/module-responsibilities.md",
@@ -154,7 +160,7 @@ defmodule LeanLsp.MixProject do
   defp deps do
     [
       {:docker_availability, "~> 1.0"},
-      {:nstandard, "~> 0.3"},
+      {:nstandard, "~> 0.3", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
