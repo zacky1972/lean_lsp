@@ -47,6 +47,34 @@ A local Lean installation is not required for the Docker-first runtime path.
 `LeanLsp.runtime_config/1` can be used without Docker; `LeanLsp.start_runtime/1`
 uses Docker by default.
 
+### Docker image policy
+
+The v0.1.0 default image is `leanprovercommunity/lean4:latest`. This is a
+convenience default for the runtime preview, not a reproducibility guarantee.
+For reproducible workflows, pass a pinned tag or immutable digest with
+`:docker_image`:
+
+```elixir
+{:ok, runtime} =
+  LeanLsp.start_runtime(
+    docker_image: "leanprovercommunity/lean4:<pinned-tag-or-digest>"
+  )
+```
+
+When calling `LeanLsp.Runtime.Docker.start_link/1` directly, use `:image`.
+
+### Workspace mounts and cleanup
+
+`:container_workspace_root` controls the working directory inside the container.
+It does not automatically mount host files. Host filesystem access is opt-in via
+runtime-specific `:mounts`; use read-only mount modes such as `"ro"` when the
+container only needs to read project files.
+
+The Docker runtime starts a long-lived container. Callers that start it directly
+should stop it with `LeanLsp.Runtime.Docker.stop/1` when finished. If Docker is
+not installed, unavailable, or not permitted for the current user, runtime
+startup returns `{:error, reason}`.
+
 ## Quick start
 
 Normalize the default runtime configuration:
@@ -214,6 +242,7 @@ LeanLsp.Runtime.Docker.stop(runtime)
 
 - [Release scope and stability](docs/release-scope-and-stability.md)
 - [Hex package metadata](docs/hex-package-metadata.md)
+- [Runtime dependency and Docker policy](docs/runtime-dependency-and-docker-policy.md)
 - [Module responsibilities](docs/module-responsibilities.md)
 - [Changelog](CHANGELOG.md)
 
