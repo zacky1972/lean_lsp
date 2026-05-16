@@ -13,6 +13,7 @@ LICENSE.md
 README.md
 docs
 docs/module-responsibilities.md
+  docs/release-procedure.md
 lib
 lib/lean_lsp.ex
 lib/lean_lsp/runtime.ex

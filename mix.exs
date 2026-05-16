@@ -50,6 +50,7 @@ defmodule LeanLsp.MixProject do
         "Release readiness": [
           "CHANGELOG.md",
           "docs/hex-package-metadata.md",
+          "docs/release-procedure.md",
           "docs/dependency-audit.md",
           "docs/release-scope-and-stability.md",
           "docs/module-responsibilities.md",
@@ -148,6 +149,7 @@ defmodule LeanLsp.MixProject do
       "CHANGELOG.md",
       "LICENSE.md",
       "docs/hex-package-metadata.md",
+      "docs/release-procedure.md",
       "docs/dependency-audit.md",
       "docs/release-scope-and-stability.md",
       "docs/runtime-dependency-and-docker-policy.md",
