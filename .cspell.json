@@ -25,6 +25,7 @@
   ],
   "words": [
     "bind",
+    "CDPATH",
     "credo",
     "deps",
     "dialyxir",
