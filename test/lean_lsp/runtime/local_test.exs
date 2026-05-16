@@ -42,7 +42,7 @@ defmodule LeanLsp.Runtime.LocalTest do
       on_exit(fn -> safe_stop(runtime) end)
 
       assert {:ok, result} = Local.exec(runtime, [fixture, "cwd"], timeout: 1_000)
-      assert result.stdout == workdir <> "\n"
+      assert_same_directory(result.stdout, workdir)
       assert result.stderr == ""
       assert result.exit_status == 0
     end
@@ -157,6 +157,29 @@ defmodule LeanLsp.Runtime.LocalTest do
       assert runtime_options[:image] == Config.default_docker_image()
       assert runtime_options[:workdir] == Config.default_container_workspace_root()
     end
+  end
+
+  defp assert_same_directory(stdout, expected_workdir) do
+    actual_workdir = String.trim_trailing(stdout, "\n")
+
+    actual = File.stat!(actual_workdir)
+    expected = File.stat!(expected_workdir)
+
+    assert actual.type == :directory
+    assert expected.type == :directory
+
+    if unix_file_identity_available?(actual, expected) do
+      assert {actual.major_device, actual.inode} == {expected.major_device, expected.inode}
+    else
+      assert Path.expand(actual_workdir) == Path.expand(expected_workdir)
+    end
+  end
+
+  defp unix_file_identity_available?(actual, expected) do
+    not (actual.inode in [0, :undefined]) and
+      not (expected.inode in [0, :undefined]) and
+      actual.major_device != :undefined and
+      expected.major_device != :undefined
   end
 
   defp start_local!(opts) do
