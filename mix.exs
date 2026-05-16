@@ -62,11 +62,24 @@ defmodule LeanLsp.MixProject do
     [
       name: "lean_lsp",
       licenses: ["Apache-2.0"],
+      files: package_files(),
       links: %{
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
         "GitHub" => @source_url,
         "HexDocs" => @hexdocs_url
       }
+    ]
+  end
+
+  defp package_files do
+    [
+      ".formatter.exs",
+      "CHANGELOG.md",
+      "LICENSE.md",
+      "README.md",
+      "docs",
+      "lib",
+      "mix.exs"
     ]
   end
 
@@ -80,6 +93,12 @@ defmodule LeanLsp.MixProject do
         "deps.unlock --check-unused",
         "spellweaver.check",
         "dialyzer"
+      ],
+      "publish.check": [
+        "cmd rm -rf _build/hex_publish_check",
+        "cmd mix hex.build --unpack --output _build/hex_publish_check",
+        "cmd mix docs --warnings-as-errors",
+        "cmd mix hex.publish --dry-run --yes"
       ],
       precommit: [
         "hex.audit",
