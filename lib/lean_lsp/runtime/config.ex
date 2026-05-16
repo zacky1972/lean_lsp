@@ -1,10 +1,28 @@
 defmodule LeanLsp.Runtime.Config do
   @moduledoc """
-  Runtime configuration for LeanLsp.
+  Normalized runtime configuration for LeanLsp.
 
-  This module keeps runtime selection and runtime defaults explicit. The default
-  runtime is `LeanLsp.Runtime.Docker`, but callers can pass `:runtime` to use a
-  test runtime or another implementation of `LeanLsp.Runtime`.
+  This module keeps runtime selection and runtime defaults explicit. It does not
+  start Docker, create containers, or allocate external resources; it only
+  validates options and converts them into the option shape expected by the
+  selected runtime implementation.
+
+  The default runtime is `LeanLsp.Runtime.Docker`, but callers can pass
+  `:runtime` to use a test runtime or another module that implements
+  `LeanLsp.Runtime`.
+
+  ## Supported options
+
+    * `:runtime` - runtime implementation module.
+    * `:docker_image` - Docker image used by the default Docker runtime.
+    * `:container_workspace_root` - working directory inside the container.
+    * `:workspace_root` - alias for `:container_workspace_root`.
+    * `:runtime_options` - keyword options passed directly to the selected
+      runtime.
+
+  Additional keyword options are merged into `:runtime_options`. This lets
+  callers pass runtime-specific options such as `:mounts`, `:env`, or timeouts
+  without changing the top-level `LeanLsp` API.
 
   ## Defaults
 
@@ -13,8 +31,8 @@ defmodule LeanLsp.Runtime.Config do
     * `:container_workspace_root` - `"/workspace"`
 
   `:container_workspace_root` is the path inside the container. Host workspace
-  mounting remains a runtime concern and should be handled by workspace/mount
-  options.
+  mounting remains a runtime concern and should be handled with runtime-specific
+  mount options.
   """
 
   @default_runtime LeanLsp.Runtime.Docker
@@ -41,15 +59,41 @@ defmodule LeanLsp.Runtime.Config do
           runtime_options: keyword()
         }
 
+  @doc group: "Defaults"
+  @doc """
+  Returns the runtime module used by default.
+
+  In v0.1.0 this is `LeanLsp.Runtime.Docker`.
+  """
   @spec default_runtime() :: module()
   def default_runtime(), do: @default_runtime
 
+  @doc group: "Defaults"
+  @doc """
+  Returns the Docker image used by the default Docker runtime.
+  """
   @spec default_docker_image() :: String.t()
   def default_docker_image(), do: @default_docker_image
 
+  @doc group: "Defaults"
+  @doc """
+  Returns the default working directory inside the Docker container.
+  """
   @spec default_container_workspace_root() :: String.t()
   def default_container_workspace_root(), do: @default_container_workspace_root
 
+  @doc group: "Normalization"
+  @doc """
+  Validates and normalizes user-provided runtime options.
+
+  Returns `{:ok, config}` when the options are a keyword list, the runtime module
+  implements `LeanLsp.Runtime`, Docker-specific defaults are valid, and
+  `:runtime_options` is a keyword list.
+
+  Returns `{:error, {:invalid_options, value}}` when the input is not a keyword
+  list, or `{:error, {:invalid_option, key}}` when a specific option is invalid.
+  This function does not start Docker or create a runtime.
+  """
   @spec normalize(keyword()) :: {:ok, t()} | {:error, term()}
   def normalize(opts) when is_list(opts) do
     if Keyword.keyword?(opts) do
@@ -63,6 +107,16 @@ defmodule LeanLsp.Runtime.Config do
 
   def normalize(opts), do: {:error, {:invalid_options, opts}}
 
+  @doc group: "Normalization"
+  @doc """
+  Converts a normalized config into options for the selected runtime.
+
+  For `LeanLsp.Runtime.Docker`, this maps the public configuration fields to the
+  Docker runtime option names by setting `:image` and `:workdir`, then merges any
+  runtime-specific options.
+
+  For non-Docker runtimes, this returns `config.runtime_options` unchanged.
+  """
   @spec to_runtime_options(t()) :: keyword()
   def to_runtime_options(%__MODULE__{runtime: LeanLsp.Runtime.Docker} = config) do
     config.runtime_options

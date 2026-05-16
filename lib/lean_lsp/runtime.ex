@@ -1,37 +1,52 @@
 defmodule LeanLsp.Runtime do
   @moduledoc """
-  Defines the runtime behaviour used by LeanLsp consumers.
+  Behaviour for Lean-capable runtime implementations.
 
-  A runtime implementation owns the execution environment needed to run Lean
-  commands. Consumers use this contract to start a runtime, stop it, and execute
-  commands through `exec/3` without depending on implementation-specific details.
+  A runtime implementation owns the external environment used to run Lean-related
+  commands. The v0.1.0 public contract is intentionally small: a runtime can be
+  started, stopped, and asked to execute a command.
+
+  Consumers should depend on this behaviour when they need a test double or an
+  alternate runtime implementation. Runtime implementations may have external
+  side effects, such as starting an external process, executing commands through
+  that process, and cleaning it up when the runtime stops.
+
+  The callback return shapes documented here are part of the v0.1.0 preview
+  contract. Implementation-specific process state, command arguments generated
+  by a runtime, and undocumented error details are not stable.
   """
 
   @typedoc """
   Runtime handle returned by `start_link/1`.
 
-  The concrete shape is implementation-specific. Consumers should pass it back to
-  `exec/3` and `stop/1` instead of inspecting it.
+  The concrete value is implementation-specific. Treat it as opaque and pass it
+  back to `exec/3` and `stop/1` instead of inspecting it.
   """
   @type t :: term()
 
   @typedoc """
   Runtime or execution options.
 
-  Supported keys are implementation-specific.
+  Supported keys are implementation-specific. Consumers should read the selected
+  runtime module documentation before relying on a particular option.
   """
   @type options :: keyword()
 
   @typedoc """
   Command and arguments to execute in the runtime.
+
+  Runtime implementations receive the command as a list of strings. The first
+  element is the executable and the remaining elements are arguments. A runtime
+  should not implicitly wrap the command in a shell unless that behavior is
+  documented by the implementation.
   """
   @type command :: [String.t()]
 
   @typedoc """
-  Result returned by `exec/3` when a command finishes.
+  Result returned by `exec/3` when a command finishes successfully.
 
   The map contains captured `stdout`, captured `stderr`, and the process
-  `exit_status`.
+  `exit_status`. Successful commands are expected to return `exit_status: 0`.
   """
   @type exec_result :: %{
           required(:stdout) => String.t(),
@@ -42,6 +57,10 @@ defmodule LeanLsp.Runtime do
 
   @typedoc """
   Structured error details returned when an observed command exits non-zero.
+
+  The failure contains the original `command`, captured output, and the non-zero
+  `exit_status` so callers can report or inspect the command failure without
+  parsing implementation-specific error text.
   """
   @type command_failure :: %{
           required(:command) => command(),
@@ -53,28 +72,39 @@ defmodule LeanLsp.Runtime do
 
   @typedoc """
   Implementation-specific error reason.
+
+  Startup, execution, and cleanup failures may include runtime-specific details.
+  Only the documented success and command-failure shapes are part of the v0.1.0
+  preview contract.
   """
   @type error_reason :: term()
 
+  @doc group: "Lifecycle callbacks"
   @doc """
-  Starts a runtime.
+  Starts a runtime and makes it ready for `exec/3` calls.
 
-  Returns `{:ok, runtime}` when the runtime is ready to accept `exec/3` calls.
+  Implementations may allocate external resources during startup, such as
+  processes, containers, mounted workspaces, or temporary files. They should
+  return `{:ok, runtime}` only after the runtime can accept execution requests.
 
   Returns `{:error, reason}` when startup fails, for example because options are
   invalid or required external resources are unavailable.
   """
   @callback start_link(options()) :: {:ok, t()} | {:error, error_reason()}
 
+  @doc group: "Lifecycle callbacks"
   @doc """
-  Stops a runtime.
+  Stops a runtime and releases resources owned by it.
 
-  Returns `:ok` when the runtime has been stopped and cleanup has completed.
+  Implementations should complete cleanup before returning `:ok`. For runtimes
+  that own external resources, this is where containers, processes, mounts, or
+  temporary files should be released.
 
   Returns `{:error, reason}` when the runtime cannot be stopped or cleanup fails.
   """
   @callback stop(t()) :: :ok | {:error, error_reason()}
 
+  @doc group: "Execution callbacks"
   @doc """
   Executes a command in a started runtime.
 

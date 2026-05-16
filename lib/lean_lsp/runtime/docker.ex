@@ -1,11 +1,40 @@
 defmodule LeanLsp.Runtime.Docker do
   @moduledoc """
-  Docker-backed runtime implementation for `LeanLsp.Runtime`.
+  Docker-backed implementation of `LeanLsp.Runtime`.
 
-  This module owns Docker-specific runtime concerns. It starts a long-lived
-  container from a configurable image, tracks the container identity in process
-  state, executes commands inside the container, and stops the backing container
-  when the runtime stops.
+  This runtime owns the Docker-specific side effects for the v0.1.0 preview. On
+  startup it checks that Docker is available, starts a long-lived container from a
+  configurable image, and keeps the container identifier in GenServer state.
+  `exec/3` runs commands inside that container with `docker exec`. `stop/1` and
+  process termination attempt to stop the backing container.
+
+  The module is intended for runtime-boundary experimentation, not as a complete
+  Lean LSP client. It can run Lean-related commands inside Docker, but it does
+  not manage JSON-RPC framing, Lean document lifecycle, diagnostics, hover,
+  completion, or go-to-definition requests.
+
+  ## External requirements
+
+    * Docker must be installed and reachable by the BEAM process.
+    * The selected image must be pullable or already available locally.
+    * Host paths used in mounts must be accessible to Docker.
+
+  ## Runtime options
+
+    * `:image` - Docker image to start. Defaults to
+      `LeanLsp.Runtime.Config.default_docker_image/0`.
+    * `:workdir`, `:container_workspace_root`, or `:workspace_root` - working
+      directory inside the container.
+    * `:mounts` - Docker volume mounts as strings, `{host, container}`, or
+      `{host, container, mode}` tuples.
+    * `:env` - environment variables as a map, keyword/list of pairs, or Docker
+      `KEY=value` strings.
+    * `:container_name` - optional Docker container name.
+    * `:docker_run_args` - additional raw arguments passed to `docker run`.
+    * `:container_command` - command used to keep the container alive.
+    * `:start_timeout` and `:stop_timeout` - Docker command timeouts.
+
+  Execution accepts `:workdir`, `:env`, `:docker_exec_args`, and `:timeout`.
   """
 
   @behaviour LeanLsp.Runtime
@@ -41,7 +70,10 @@ defmodule LeanLsp.Runtime.Docker do
   ]
 
   @typedoc """
-  Runtime process handle.
+  Runtime process handle for the Docker-backed runtime.
+
+  This is usually the pid or registered name of the GenServer. Treat it as
+  opaque and pass it to `exec/3` and `stop/1`.
   """
   @type runtime ::
           pid()
@@ -53,8 +85,13 @@ defmodule LeanLsp.Runtime.Docker do
   @doc """
   Returns a child specification suitable for supervisors.
 
+  Runtime options are passed to `start_link/1`. The supervision-specific keys
+  `:id`, `:restart`, and `:shutdown` are consumed while building the child spec.
+
   The default restart mode is `:transient`, so an explicit normal stop does not
-  cause the supervisor to restart the runtime.
+  cause the supervisor to restart the runtime. The default shutdown timeout is
+  slightly longer than the Docker stop timeout to give container cleanup time to
+  finish.
   """
   @spec child_spec(keyword()) :: Supervisor.child_spec()
   def child_spec(opts) do
@@ -69,6 +106,18 @@ defmodule LeanLsp.Runtime.Docker do
     }
   end
 
+  @doc """
+  Starts a Docker-backed runtime process.
+
+  Startup checks Docker availability, runs `docker run --detach --rm`, and stores
+  the resulting container id in the GenServer state. If the GenServer cannot be
+  started after the container is created, the implementation attempts to stop the
+  container before returning the startup error.
+
+  Important options include `:image`, `:workdir`, `:mounts`, `:env`,
+  `:container_name`, `:docker_run_args`, `:container_command`, and
+  `:start_timeout`.
+  """
   @impl LeanLsp.Runtime
   @spec start_link(LeanLsp.Runtime.options()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
@@ -87,12 +136,35 @@ defmodule LeanLsp.Runtime.Docker do
     end
   end
 
+  @doc """
+  Stops the Docker-backed runtime and cleans up its container.
+
+  This calls `docker stop` for the container owned by the runtime. Cleanup is
+  idempotent for an already-stopped runtime and treats a missing container as
+  already cleaned up.
+
+  Returns `:ok` when cleanup completes or `{:error, reason}` when Docker cleanup
+  fails.
+  """
   @impl LeanLsp.Runtime
   @spec stop(LeanLsp.Runtime.t()) :: :ok | {:error, LeanLsp.Runtime.error_reason()}
   def stop(runtime) do
     GenServer.call(runtime, :stop, :infinity)
   end
 
+  @doc """
+  Executes a command inside the running Docker container.
+
+  The command must be a non-empty list of strings, for example
+  `["lean", "--version"]`. The implementation runs it through `docker exec` and
+  captures stdout, stderr, and the exit status.
+
+  Options include `:workdir`, `:env`, `:docker_exec_args`, and `:timeout`.
+
+  Returns `{:ok, result}` for exit status `0`, `{:error, {:command_failed,
+  failure}}` for observed non-zero exits, or `{:error, reason}` when the command
+  cannot be executed or observed.
+  """
   @impl LeanLsp.Runtime
   @spec exec(LeanLsp.Runtime.t(), LeanLsp.Runtime.command(), LeanLsp.Runtime.options()) ::
           {:ok, LeanLsp.Runtime.exec_result()} | {:error, LeanLsp.Runtime.error_reason()}
