@@ -67,14 +67,18 @@ defmodule LeanLsp.Runtime.Docker do
   permissions, an image that cannot be pulled or started, or invalid runtime
   options. The v0.1.0 public contract is the `{:ok, runtime}` / `{:error, reason}`
   shape; nested Docker error details are implementation-specific preview details.
-
   """
 
   @behaviour LeanLsp.Runtime
 
   use GenServer
 
+  alias LeanLsp.Runtime.ChildSpec
+  alias LeanLsp.Runtime.Command
   alias LeanLsp.Runtime.Config, as: RuntimeConfig
+  alias LeanLsp.Runtime.Env
+  alias LeanLsp.Runtime.Options
+  alias LeanLsp.Runtime.SystemCommand
 
   @default_container_command [
     "sh",
@@ -86,8 +90,6 @@ defmodule LeanLsp.Runtime.Docker do
   @default_exec_timeout 30_000
   @default_stop_timeout 15_000
   @default_child_shutdown @default_stop_timeout + 1_000
-
-  @gen_server_options [:debug, :hibernate_after, :name, :spawn_opt]
 
   defstruct [
     :container_id,
@@ -128,15 +130,7 @@ defmodule LeanLsp.Runtime.Docker do
   """
   @spec child_spec(keyword()) :: Supervisor.child_spec()
   def child_spec(opts) do
-    runtime_opts = Keyword.drop(opts, [:id, :restart, :shutdown])
-
-    %{
-      id: Keyword.get(opts, :id, __MODULE__),
-      start: {__MODULE__, :start_link, [runtime_opts]},
-      restart: Keyword.get(opts, :restart, :transient),
-      shutdown: Keyword.get(opts, :shutdown, @default_child_shutdown),
-      type: :worker
-    }
+    ChildSpec.build(__MODULE__, opts, @default_child_shutdown)
   end
 
   @doc """
@@ -154,7 +148,7 @@ defmodule LeanLsp.Runtime.Docker do
   @impl LeanLsp.Runtime
   @spec start_link(LeanLsp.Runtime.options()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    {server_opts, runtime_opts} = Keyword.split(opts, @gen_server_options)
+    {server_opts, runtime_opts} = Keyword.split(opts, Options.gen_server_options())
     runtime_opts = Keyword.put(runtime_opts, :__owner__, self())
 
     with {:ok, state} <- build_initial_state(runtime_opts) do
@@ -204,7 +198,11 @@ defmodule LeanLsp.Runtime.Docker do
   def exec(runtime, command, opts) when is_list(opts) do
     timeout = Keyword.get(opts, :timeout, @default_exec_timeout)
 
-    GenServer.call(runtime, {:exec, command, opts}, call_timeout(timeout))
+    GenServer.call(
+      runtime,
+      {:exec, command, opts},
+      Command.call_timeout(timeout, @default_exec_timeout)
+    )
   end
 
   @impl GenServer
@@ -252,18 +250,12 @@ defmodule LeanLsp.Runtime.Docker do
     {:stop, reason, stop_container_for_exit(state)}
   end
 
-  def handle_info({:EXIT, _from, _reason}, state) do
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, _monitor_ref, :process, _pid, _reason}, state) do
-    {:noreply, state}
-  end
+  def handle_info({:EXIT, _from, _reason}, state), do: {:noreply, state}
+  def handle_info({:DOWN, _monitor_ref, :process, _pid, _reason}, state), do: {:noreply, state}
 
   @impl GenServer
   def terminate(_reason, state) do
     _ignored = stop_container(state)
-
     :ok
   end
 
@@ -281,16 +273,16 @@ defmodule LeanLsp.Runtime.Docker do
       workdir: docker_workdir(opts)
     }
 
-    validate_options(config,
-      image: &non_empty_binary?/1,
-      container_command: &string_list?/1,
-      docker_run_args: &string_list?/1,
-      env: &valid_env?/1,
+    Options.validate(config,
+      image: &Options.non_empty_binary?/1,
+      container_command: &Options.string_list?/1,
+      docker_run_args: &Options.string_list?/1,
+      env: &Env.valid?/1,
       mounts: &valid_mounts?/1,
-      container_name: &optional_binary?/1,
-      workdir: &optional_binary?/1,
-      start_timeout: &valid_timeout?/1,
-      stop_timeout: &valid_timeout?/1
+      container_name: &Options.optional_binary?/1,
+      workdir: &Options.optional_binary?/1,
+      start_timeout: &Options.valid_timeout?/1,
+      stop_timeout: &Options.valid_timeout?/1
     )
   end
 
@@ -306,19 +298,12 @@ defmodule LeanLsp.Runtime.Docker do
     )
   end
 
-  defp validate_options(config, validators) do
-    case Enum.find(validators, fn {key, validator} -> not validator.(Map.fetch!(config, key)) end) do
-      nil -> {:ok, config}
-      {key, _validator} -> {:error, {:invalid_option, key}}
-    end
-  end
-
   defp start_container(docker, config) do
     args =
       ["run", "--detach", "--rm"] ++
         option_args("--name", config.container_name) ++
         option_args("--workdir", config.workdir) ++
-        env_args(config.env) ++
+        Env.to_cli_args("--env", config.env) ++
         mount_args(config.mounts) ++
         config.docker_run_args ++
         [config.image] ++
@@ -356,7 +341,7 @@ defmodule LeanLsp.Runtime.Docker do
         if missing_container?(result) do
           {:ok, mark_stopped(state)}
         else
-          {:error, {:docker_stop_failed, result.exit_status, command_output(result)}}
+          {:error, {:docker_stop_failed, result.exit_status, Command.output(result)}}
         end
 
       {:error, reason} ->
@@ -371,47 +356,23 @@ defmodule LeanLsp.Runtime.Docker do
     end
   end
 
-  defp mark_stopped(state) do
-    %{state | stopped?: true}
-  end
+  defp mark_stopped(state), do: %{state | stopped?: true}
 
   defp exec_in_container(state, command, opts) do
-    with {:ok, command} <- normalize_command(command),
+    with {:ok, command} <- Command.normalize(command),
          {:ok, exec_config} <- normalize_exec_options(state, opts) do
       args =
         ["exec"] ++
           exec_config.docker_exec_args ++
           option_args("--workdir", exec_config.workdir) ++
-          env_args(exec_config.env) ++
+          Env.to_cli_args("--env", exec_config.env) ++
           [state.container_id] ++
           command
 
       state.docker
       |> docker_command(args, exec_config.timeout)
-      |> normalize_exec_result(command)
+      |> Command.normalize_exec_result(command)
     end
-  end
-
-  defp normalize_exec_result({:ok, %{exit_status: 0} = result}, _command) do
-    {:ok, result}
-  end
-
-  defp normalize_exec_result(
-         {:ok, %{exit_status: exit_status, stdout: stdout, stderr: stderr}},
-         command
-       ) do
-    {:error,
-     {:command_failed,
-      %{
-        command: command,
-        stdout: stdout,
-        stderr: stderr,
-        exit_status: exit_status
-      }}}
-  end
-
-  defp normalize_exec_result({:error, _reason} = error, _command) do
-    error
   end
 
   defp normalize_exec_options(state, opts) do
@@ -422,162 +383,40 @@ defmodule LeanLsp.Runtime.Docker do
       workdir: Keyword.get(opts, :workdir, state.workdir)
     }
 
-    validate_options(config,
-      docker_exec_args: &string_list?/1,
-      env: &valid_env?/1,
-      timeout: &valid_timeout?/1,
-      workdir: &optional_binary?/1
+    Options.validate(config,
+      docker_exec_args: &Options.string_list?/1,
+      env: &Env.valid?/1,
+      timeout: &Options.valid_timeout?/1,
+      workdir: &Options.optional_binary?/1
     )
   end
-
-  defp normalize_command(command) when is_list(command) do
-    if command != [] and Enum.all?(command, &is_binary/1) do
-      {:ok, command}
-    else
-      {:error, {:invalid_command, command}}
-    end
-  end
-
-  defp normalize_command(command), do: {:error, {:invalid_command, command}}
 
   defp docker_command(docker, args, timeout) do
-    parent = self()
-    command_ref = make_ref()
-
-    {pid, monitor_ref} =
-      spawn_monitor(fn ->
-        send(parent, {command_ref, capture_command(docker, args)})
-      end)
-
-    receive_command_result(pid, monitor_ref, command_ref, args, timeout)
-  end
-
-  defp receive_command_result(pid, monitor_ref, command_ref, _args, :infinity) do
-    receive do
-      {^command_ref, result} ->
-        Process.demonitor(monitor_ref, [:flush])
-        result
-
-      {:DOWN, ^monitor_ref, :process, ^pid, reason} ->
-        receive_result_after_down(command_ref, reason)
-    end
-  end
-
-  defp receive_command_result(pid, monitor_ref, command_ref, args, timeout) do
-    receive do
-      {^command_ref, result} ->
-        Process.demonitor(monitor_ref, [:flush])
-        result
-
-      {:DOWN, ^monitor_ref, :process, ^pid, reason} ->
-        receive_result_after_down(command_ref, reason)
-    after
-      timeout ->
-        Process.exit(pid, :kill)
-        Process.demonitor(monitor_ref, [:flush])
-        {:error, {:docker_command_timeout, args, timeout}}
-    end
-  end
-
-  defp receive_result_after_down(command_ref, reason) do
-    receive do
-      {^command_ref, result} -> result
-    after
-      0 -> {:error, {:docker_command_crashed, reason}}
-    end
-  end
-
-  defp capture_command(docker, args) do
-    stderr_path = stderr_path()
-
-    try do
-      {stdout, exit_status} =
-        System.cmd("/bin/sh", [
-          "-c",
-          "err=$1; shift; exec \"$@\" 2>\"$err\"",
-          "lean_lsp_docker",
-          stderr_path,
-          docker | args
-        ])
-
-      {:ok,
-       %{
-         exit_status: exit_status,
-         stderr: read_file(stderr_path),
-         stdout: stdout
-       }}
-    rescue
-      exception in [ArgumentError, ErlangError] ->
-        {:error, {:docker_command_failed, 127, Exception.message(exception)}}
-    after
-      File.rm(stderr_path)
-    end
-  end
-
-  defp stderr_path() do
-    Path.join(
-      System.tmp_dir!(),
-      "lean_lsp_docker_stderr_#{System.unique_integer([:positive])}.log"
+    SystemCommand.run([docker | args],
+      timeout: timeout,
+      stderr_file_prefix: "lean_lsp_docker_stderr",
+      timeout_reason: fn _command, timeout -> {:docker_command_timeout, args, timeout} end,
+      crash_reason: fn reason -> {:docker_command_crashed, reason} end,
+      launch_reason: fn _command, _executable, exception ->
+        {:docker_command_failed, 127, Exception.message(exception)}
+      end
     )
-  end
-
-  defp read_file(path) do
-    case File.read(path) do
-      {:ok, contents} -> contents
-      {:error, _reason} -> ""
-    end
   end
 
   defp docker_command_failure(args, result) do
-    {:error, {:docker_command_failed, args, result.exit_status, command_output(result)}}
-  end
-
-  defp command_output(result) do
-    [result.stdout, result.stderr]
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.join("\n")
-    |> String.trim()
+    {:error, {:docker_command_failed, args, result.exit_status, Command.output(result)}}
   end
 
   defp missing_container?(result) do
     result
-    |> command_output()
+    |> Command.output()
     |> String.downcase()
     |> String.contains?("no such container")
   end
 
-  defp call_timeout(:infinity), do: :infinity
-
-  defp call_timeout(timeout) when is_integer(timeout) and timeout >= 0 do
-    timeout + 1_000
-  end
-
-  defp call_timeout(_timeout), do: @default_exec_timeout + 1_000
-
   defp option_args(_option, nil), do: []
   defp option_args(_option, ""), do: []
   defp option_args(option, value), do: [option, value]
-
-  defp env_args(nil), do: []
-
-  defp env_args(env) when is_map(env) do
-    env
-    |> Map.to_list()
-    |> env_args()
-  end
-
-  defp env_args(env) when is_list(env) do
-    Enum.flat_map(env, fn
-      value when is_binary(value) ->
-        ["--env", value]
-
-      {key, value} ->
-        ["--env", "#{env_part_to_string(key)}=#{env_part_to_string(value)}"]
-    end)
-  end
-
-  defp env_part_to_string(value) when is_binary(value), do: value
-  defp env_part_to_string(value), do: to_string(value)
 
   defp mount_args(mounts) when is_list(mounts) do
     Enum.flat_map(mounts, fn
@@ -592,53 +431,17 @@ defmodule LeanLsp.Runtime.Docker do
     end)
   end
 
-  defp string_list?(value) when is_list(value), do: Enum.all?(value, &is_binary/1)
-  defp string_list?(_value), do: false
-
-  defp valid_env?(nil), do: true
-
-  defp valid_env?(env) when is_map(env) do
-    Enum.all?(env, fn {key, value} -> valid_env_entry?({key, value}) end)
-  end
-
-  defp valid_env?(env) when is_list(env) do
-    Enum.all?(env, &valid_env_entry?/1)
-  end
-
-  defp valid_env?(_env), do: false
-
-  defp valid_env_entry?(value) when is_binary(value), do: value != ""
-
-  defp valid_env_entry?({key, value}) do
-    valid_env_key?(key) and valid_env_value?(value)
-  end
-
-  defp valid_env_entry?(_value), do: false
-
-  defp valid_env_key?(key), do: is_atom(key) or is_binary(key)
-
-  defp valid_env_value?(value)
-       when is_binary(value)
-       when is_atom(value)
-       when is_integer(value)
-       when is_float(value)
-       when is_boolean(value) do
-    true
-  end
-
-  defp valid_env_value?(_value), do: false
-
   defp valid_mounts?(mounts) when is_list(mounts) do
     Enum.all?(mounts, fn
       mount when is_binary(mount) ->
         mount != ""
 
       {host_path, container_path} ->
-        non_empty_binary?(host_path) and non_empty_binary?(container_path)
+        Options.non_empty_binary?(host_path) and Options.non_empty_binary?(container_path)
 
       {host_path, container_path, mode} ->
-        non_empty_binary?(host_path) and non_empty_binary?(container_path) and
-          non_empty_binary?(mode)
+        Options.non_empty_binary?(host_path) and Options.non_empty_binary?(container_path) and
+          Options.non_empty_binary?(mode)
 
       _other ->
         false
@@ -646,12 +449,4 @@ defmodule LeanLsp.Runtime.Docker do
   end
 
   defp valid_mounts?(_mounts), do: false
-
-  defp optional_binary?(nil), do: true
-  defp optional_binary?(value), do: non_empty_binary?(value)
-
-  defp non_empty_binary?(value), do: is_binary(value) and value != ""
-
-  defp valid_timeout?(:infinity), do: true
-  defp valid_timeout?(timeout), do: is_integer(timeout) and timeout >= 0
 end

@@ -176,8 +176,8 @@ defmodule LeanLsp.Runtime.LocalTest do
   end
 
   defp unix_file_identity_available?(actual, expected) do
-    not (actual.inode in [0, :undefined]) and
-      not (expected.inode in [0, :undefined]) and
+    actual.inode not in [0, :undefined] and
+      expected.inode not in [0, :undefined] and
       actual.major_device != :undefined and
       expected.major_device != :undefined
   end
