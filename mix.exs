@@ -85,6 +85,9 @@ defmodule LeanLsp.MixProject do
 
   def aliases do
     [
+      "package.contents": [
+        "cmd sh scripts/check_hex_package_contents.sh"
+      ],
       check: [
         "hex.audit",
         "compile --warnings-as-errors --force",
@@ -138,7 +141,8 @@ defmodule LeanLsp.MixProject do
       "LICENSE.md",
       "docs/hex-package-metadata.md",
       "docs/release-scope-and-stability.md",
-      "docs/module-responsibilities.md"
+      "docs/module-responsibilities.md",
+      "docs/hex-package-contents.md"
     ]
     |> Enum.uniq()
     |> Enum.filter(&File.exists?/1)
