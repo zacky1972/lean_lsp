@@ -36,7 +36,25 @@ defmodule LeanLsp.MixProject do
     [
       main: "readme",
       source_ref: "main",
-      extras: docs_extras()
+      extras: docs_extras(),
+      groups_for_modules: [
+        "Public entry point": [LeanLsp],
+        "Runtime preview": [
+          LeanLsp.Runtime,
+          LeanLsp.Runtime.Config,
+          LeanLsp.Runtime.Docker
+        ]
+      ],
+      groups_for_extras: [
+        "Getting started": ["README.md"],
+        "Release readiness": [
+          "CHANGELOG.md",
+          "docs/hex-package-metadata.md",
+          "docs/release-scope-and-stability.md",
+          "docs/module-responsibilities.md"
+        ],
+        Legal: ["LICENSE.md"]
+      ]
     ]
   end
 
