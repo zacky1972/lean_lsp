@@ -24,12 +24,19 @@
     "test"
   ],
   "words": [
+    "bind",
+    "digests",
+    "filesystem",
     "hexdocs",
+    "immutable",
     "leanprovercommunity",
     "PLTs",
     "pullable",
+    "reproducibility",
+    "reproducible",
     "unpack",
     "unpacked",
+    "workdir",
     "zacky"
   ]
 }

@@ -51,7 +51,8 @@ defmodule LeanLsp.MixProject do
           "CHANGELOG.md",
           "docs/hex-package-metadata.md",
           "docs/release-scope-and-stability.md",
-          "docs/module-responsibilities.md"
+          "docs/module-responsibilities.md",
+          "docs/runtime-dependency-and-docker-policy.md"
         ],
         Legal: ["LICENSE.md"]
       ]

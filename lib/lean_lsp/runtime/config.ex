@@ -7,9 +7,8 @@ defmodule LeanLsp.Runtime.Config do
   validates options and converts them into the option shape expected by the
   selected runtime implementation.
 
-  The default runtime is `LeanLsp.Runtime.Docker`, but callers can pass
-  `:runtime` to use a test runtime or another module that implements
-  `LeanLsp.Runtime`.
+  The default runtime is `LeanLsp.Runtime.Docker`, but callers can pass `:runtime`
+  to use a test runtime or another module that implements `LeanLsp.Runtime`.
 
   ## Supported options
 
@@ -20,9 +19,9 @@ defmodule LeanLsp.Runtime.Config do
     * `:runtime_options` - keyword options passed directly to the selected
       runtime.
 
-  Additional keyword options are merged into `:runtime_options`. This lets
-  callers pass runtime-specific options such as `:mounts`, `:env`, or timeouts
-  without changing the top-level `LeanLsp` API.
+  Additional keyword options are merged into `:runtime_options`. This lets callers
+  pass runtime-specific options such as `:mounts`, `:env`, or timeouts without
+  changing the top-level `LeanLsp` API.
 
   ## Defaults
 
@@ -30,9 +29,14 @@ defmodule LeanLsp.Runtime.Config do
     * `:docker_image` - `"leanprovercommunity/lean4:latest"`
     * `:container_workspace_root` - `"/workspace"`
 
-  `:container_workspace_root` is the path inside the container. Host workspace
-  mounting remains a runtime concern and should be handled with runtime-specific
-  mount options.
+  The v0.1.0 preview keeps `leanprovercommunity/lean4:latest` as a convenience
+  default. It is not a reproducibility guarantee; callers that need reproducible
+  Lean versions should pass a pinned tag or immutable digest with `:docker_image`.
+
+  `:container_workspace_root` is the path inside the container. It does not mount a
+  host directory by itself. Host workspace mounting remains a runtime concern and
+  can be configured with runtime-specific options such as `:mounts`.
+
   """
 
   @default_runtime LeanLsp.Runtime.Docker

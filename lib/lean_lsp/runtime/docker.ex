@@ -9,15 +9,24 @@ defmodule LeanLsp.Runtime.Docker do
   process termination attempt to stop the backing container.
 
   The module is intended for runtime-boundary experimentation, not as a complete
-  Lean LSP client. It can run Lean-related commands inside Docker, but it does
-  not manage JSON-RPC framing, Lean document lifecycle, diagnostics, hover,
+  Lean LSP client. It can run Lean-related commands inside Docker, but it does not
+  manage JSON-RPC framing, Lean document lifecycle, diagnostics, hover,
   completion, or go-to-definition requests.
 
   ## External requirements
 
     * Docker must be installed and reachable by the BEAM process.
+    * The current user must have permission to run Docker containers.
     * The selected image must be pullable or already available locally.
     * Host paths used in mounts must be accessible to Docker.
+
+  ## Default image policy
+
+  The default image is `leanprovercommunity/lean4:latest`. The v0.1.0 preview uses
+  `latest` as a convenience default so callers can experiment without choosing an
+  image first. It is not a reproducibility guarantee. Use a pinned tag or immutable
+  digest through `LeanLsp.start_runtime/1`'s `:docker_image` option, or through
+  this module's direct `:image` option, when reproducible Lean versions matter.
 
   ## Runtime options
 
@@ -26,7 +35,8 @@ defmodule LeanLsp.Runtime.Docker do
     * `:workdir`, `:container_workspace_root`, or `:workspace_root` - working
       directory inside the container.
     * `:mounts` - Docker volume mounts as strings, `{host, container}`, or
-      `{host, container, mode}` tuples.
+      `{host, container, mode}` tuples. Bind mounts can expose host files to the
+      container; use modes such as `"ro"` for read-only project access.
     * `:env` - environment variables as a map, keyword/list of pairs, or Docker
       `KEY=value` strings.
     * `:container_name` - optional Docker container name.
@@ -35,6 +45,29 @@ defmodule LeanLsp.Runtime.Docker do
     * `:start_timeout` and `:stop_timeout` - Docker command timeouts.
 
   Execution accepts `:workdir`, `:env`, `:docker_exec_args`, and `:timeout`.
+
+  ## Workspace behaviour
+
+  The default workdir is `/workspace` inside the container. Setting the workdir
+  does not automatically mount host files. Host filesystem access is opt-in via
+  `:mounts`.
+
+  ## Lifecycle and cleanup
+
+  `start_link/1` creates a long-lived container with `docker run --detach --rm`.
+  `stop/1` calls `docker stop`; cleanup is idempotent for an already-stopped
+  runtime and treats a missing container as already cleaned up. If startup fails
+  after a container is created, the implementation attempts to stop that container
+  before returning the startup error.
+
+  ## Docker-related failures
+
+  When Docker is unavailable, startup returns `{:error, reason}`. Common causes
+  include a missing Docker executable, Docker not running, insufficient
+  permissions, an image that cannot be pulled or started, or invalid runtime
+  options. The v0.1.0 public contract is the `{:ok, runtime}` / `{:error, reason}`
+  shape; nested Docker error details are implementation-specific preview details.
+
   """
 
   @behaviour LeanLsp.Runtime
