@@ -109,6 +109,7 @@ end
 The second example requires Docker. If Docker is not installed, unavailable, or
 not permitted for the current user, runtime startup returns an error.
 
+```elixir
 {:ok, runtime} =
   LeanLsp.start_runtime(
     runtime: LeanLsp.Runtime.Local,
@@ -121,6 +122,7 @@ try do
 after
   LeanLsp.Runtime.Local.stop(runtime)
 end
+```
 
 ## Release status
 
