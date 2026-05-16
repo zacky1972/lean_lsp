@@ -48,9 +48,7 @@ defmodule LeanLsp.Runtime.Env do
   def to_cli_args(_option, nil), do: []
 
   def to_cli_args(option, env) when is_map(env) do
-    env
-    |> Map.to_list()
-    |> to_cli_args(option)
+    to_cli_args(option, Map.to_list(env))
   end
 
   def to_cli_args(option, env) when is_list(env) do
