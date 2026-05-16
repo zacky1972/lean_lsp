@@ -2,7 +2,7 @@ defmodule LeanLsp.DownstreamSmokeAliasTest do
   use ExUnit.Case, async: true
 
   @script "scripts/downstream_smoke_test.sh"
-  @doc "docs/downstream-smoke-test.md"
+  @downstream_doc "docs/downstream-smoke-test.md"
 
   test "downstream smoke alias is available" do
     aliases = aliases()
@@ -28,7 +28,7 @@ defmodule LeanLsp.DownstreamSmokeAliasTest do
     docs = LeanLsp.MixProject.project() |> Keyword.fetch!(:docs)
     extras = Keyword.fetch!(docs, :extras)
 
-    assert @doc in extras
+    assert @downstream_doc in extras
   end
 
   test "downstream smoke script creates a temporary project and calls public API" do
@@ -53,7 +53,7 @@ defmodule LeanLsp.DownstreamSmokeAliasTest do
   end
 
   test "downstream smoke procedure covers local, Hex, and Docker modes" do
-    doc = File.read!(@doc)
+    doc = File.read!(@downstream_doc)
 
     assert doc =~ "mix downstream.smoke"
     assert doc =~ "path:"
