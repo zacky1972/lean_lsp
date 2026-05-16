@@ -117,6 +117,13 @@ defmodule LeanLsp.Runtime.Docker do
           | {:global, term()}
           | {:via, module(), term()}
 
+  @typep docker_command_result :: %{
+           required(:stdout) => String.t(),
+           required(:stderr) => String.t(),
+           required(:exit_status) => non_neg_integer(),
+           optional(atom()) => term()
+         }
+
   @doc """
   Returns a child specification suitable for supervisors.
 
@@ -403,10 +410,14 @@ defmodule LeanLsp.Runtime.Docker do
     )
   end
 
+  @spec docker_command_failure(LeanLsp.Runtime.command(), docker_command_result()) ::
+          {:error,
+           {:docker_command_failed, LeanLsp.Runtime.command(), non_neg_integer(), String.t()}}
   defp docker_command_failure(args, result) do
     {:error, {:docker_command_failed, args, result.exit_status, Command.output(result)}}
   end
 
+  @spec missing_container?(docker_command_result()) :: boolean()
   defp missing_container?(result) do
     result
     |> Command.output()
