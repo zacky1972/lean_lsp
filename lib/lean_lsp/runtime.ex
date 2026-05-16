@@ -8,12 +8,12 @@ defmodule LeanLsp.Runtime do
 
   Consumers should depend on this behaviour when they need a test double or an
   alternate runtime implementation. Runtime implementations may have external
-  side effects. For example, `LeanLsp.Runtime.Docker` starts a Docker container,
-  executes commands with `docker exec`, and stops the container during cleanup.
+  side effects, such as starting an external process, executing commands through
+  that process, and cleaning it up when the runtime stops.
 
   The callback return shapes documented here are part of the v0.1.0 preview
-  contract. Implementation-specific process state, Docker command arguments,
-  generated container names, and undocumented error details are not stable.
+  contract. Implementation-specific process state, command arguments generated
+  by a runtime, and undocumented error details are not stable.
   """
 
   @typedoc """
@@ -35,10 +35,10 @@ defmodule LeanLsp.Runtime do
   @typedoc """
   Command and arguments to execute in the runtime.
 
-  Runtime implementations receive the command as a list of strings. Docker-backed
-  execution treats the first element as the executable and the remaining elements
-  as arguments; it does not wrap the command in a shell unless the caller asks for
-  one explicitly.
+  Runtime implementations receive the command as a list of strings. The first
+  element is the executable and the remaining elements are arguments. A runtime
+  should not implicitly wrap the command in a shell unless that behavior is
+  documented by the implementation.
   """
   @type command :: [String.t()]
 
