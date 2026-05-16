@@ -32,7 +32,7 @@ defmodule LeanLsp.Runtime.DockerPolicyDocsTest do
     {:docs_v1, _anno, _beam_language, _format, module_doc, _metadata, docs} =
       Code.fetch_docs(LeanLsp.Runtime.Config)
 
-    rendered_docs = inspect({module_doc, docs})
+    rendered_docs = docs_text({module_doc, docs})
 
     assert rendered_docs =~ "leanprovercommunity/lean4:latest"
     assert rendered_docs =~ "convenience default"
@@ -46,7 +46,7 @@ defmodule LeanLsp.Runtime.DockerPolicyDocsTest do
     {:docs_v1, _anno, _beam_language, _format, module_doc, _metadata, docs} =
       Code.fetch_docs(LeanLsp.Runtime.Docker)
 
-    rendered_docs = inspect({module_doc, docs})
+    rendered_docs = docs_text({module_doc, docs})
 
     assert rendered_docs =~ "Docker must be installed"
     assert rendered_docs =~ "leanprovercommunity/lean4:latest"
@@ -55,5 +55,12 @@ defmodule LeanLsp.Runtime.DockerPolicyDocsTest do
     assert rendered_docs =~ "docker stop"
     assert rendered_docs =~ "Docker is unavailable"
     assert rendered_docs =~ "{:error, reason}"
+  end
+
+  defp docs_text(docs) do
+    docs
+    |> inspect()
+    |> String.replace("\\n", " ")
+    |> String.replace(~r/\s+/, " ")
   end
 end

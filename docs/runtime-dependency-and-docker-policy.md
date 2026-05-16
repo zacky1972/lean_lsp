@@ -30,7 +30,8 @@ The package keeps `latest` as the default for the initial preview so users get a
 small, convenient Lean runtime without choosing an image up front. This is a
 convenience default, not a reproducibility guarantee.
 
-For reproducible workflows, pass a pinned tag or immutable digest explicitly:
+For reproducible workflows, pass a pinned tag or immutable digest explicitly with the public
+`:docker_image` option:
 
 ```elixir
 {:ok, runtime} =
@@ -40,7 +41,7 @@ For reproducible workflows, pass a pinned tag or immutable digest explicitly:
 ```
 
 When calling `LeanLsp.Runtime.Docker.start_link/1` directly, use the runtime
-option name:
+`:image` option name:
 
 ```elixir
 {:ok, runtime} =
