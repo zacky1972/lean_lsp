@@ -13,6 +13,10 @@ This note records the v0.1.0 package metadata expected for the first public Hex 
 
 The GitHub repository is both the source location and the project home page for v0.1.0. HexDocs source navigation is generated from the project `source_url` and `docs[:source_ref]` metadata in `mix.exs`.
 
+
+
+For the full v0.1.0 release checklist, see [Release procedure](release-procedure.md).
+
 ## Pre-publish checks
 
 Before publishing v0.1.0, run the pre-publish validation alias from a clean
@@ -31,7 +35,7 @@ It validates the release in three Hex-specific ways:
     package and unpacks its contents for local inspection.
   * `mix docs --warnings-as-errors` verifies that HexDocs generation still
     succeeds without warnings.
-  * `mix hex.publish --dry-run --yes --yes` validates package metadata and local
+  * `mix hex.publish --dry-run --yes` validates package metadata and local
     publish checks without uploading anything and without interactive prompts.
 
 The `--yes` flag is used only together with `--dry-run` so that the pre-publish check remains non-interactive when Hex would otherwise ask for an owner or confirmation. The final publish command remains a manual maintainer action.
