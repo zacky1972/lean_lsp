@@ -87,6 +87,7 @@ defmodule LeanLsp.MixProject do
 
   def aliases do
     [
+      "downstream.smoke": ["cmd sh scripts/downstream_smoke_test.sh"],
       "package.contents": [
         "cmd sh scripts/check_hex_package_contents.sh"
       ],
@@ -107,6 +108,7 @@ defmodule LeanLsp.MixProject do
         "cmd rm -rf _build/hex_publish_check",
         "cmd mix hex.build --unpack --output _build/hex_publish_check",
         "cmd mix docs --warnings-as-errors",
+        "cmd sh scripts/downstream_smoke_test.sh",
         "cmd mix hex.publish --dry-run --yes"
       ],
       precommit: [
@@ -150,7 +152,8 @@ defmodule LeanLsp.MixProject do
       "docs/release-scope-and-stability.md",
       "docs/runtime-dependency-and-docker-policy.md",
       "docs/module-responsibilities.md",
-      "docs/hex-package-contents.md"
+      "docs/hex-package-contents.md",
+      "docs/downstream-smoke-test.md"
     ]
     |> Enum.uniq()
     |> Enum.filter(&File.exists?/1)
