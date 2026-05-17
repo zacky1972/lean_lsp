@@ -1,7 +1,7 @@
 defmodule LeanLsp.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/zacky1972/lean_lsp"
   @hexdocs_url "https://hexdocs.pm/lean_lsp"
 
@@ -35,14 +35,15 @@ defmodule LeanLsp.MixProject do
   def docs do
     [
       main: "readme",
-      source_ref: "main",
+      source_ref: "v#{@version}",
       extras: docs_extras(),
       groups_for_modules: [
         "Public entry point": [LeanLsp],
         "Runtime preview": [
           LeanLsp.Runtime,
           LeanLsp.Runtime.Config,
-          LeanLsp.Runtime.Docker
+          LeanLsp.Runtime.Docker,
+          LeanLsp.Runtime.Local
         ]
       ],
       groups_for_extras: [
@@ -140,7 +141,7 @@ defmodule LeanLsp.MixProject do
   end
 
   defp description do
-    "Experimental Lean LSP foundation and Docker runtime preview for Elixir; full LSP client support is roadmap work."
+    "Experimental Lean LSP runtime foundation for Elixir; full LSP client support is roadmap work."
   end
 
   defp docs_extras do

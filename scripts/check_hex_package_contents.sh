@@ -19,6 +19,12 @@ lib/lean_lsp.ex
 lib/lean_lsp/runtime.ex
 lib/lean_lsp/runtime/config.ex
 lib/lean_lsp/runtime/docker.ex
+lib/lean_lsp/runtime/local.ex
+lib/lean_lsp/runtime/child_spec.ex
+lib/lean_lsp/runtime/command.ex
+lib/lean_lsp/runtime/env.ex
+lib/lean_lsp/runtime/options.ex
+lib/lean_lsp/runtime/system_command.ex
 mix.exs
 "
 

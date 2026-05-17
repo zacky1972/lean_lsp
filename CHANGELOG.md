@@ -1,5 +1,29 @@
 # Changelog
 
+# Changelog
+
+## v0.2.0
+
+### Release scope
+
+LeanLsp v0.2.0 is a runtime-preview release for the Lean-capable runtime layer. It remains experimental and does not provide a production-ready Lean LSP client.
+
+### Added
+
+- Added `LeanLsp.Runtime.Local` as a host-backed runtime implementation for environments that already have Lean/Lake installed.
+- Added local runtime support through the existing `LeanLsp.Runtime` behaviour.
+- Added acceptance coverage for host working directory execution, environment propagation, stdout/stderr capture, non-zero exits, timeout handling, and launch failures.
+- Added runtime-internal helper modules to reduce duplication between runtime implementations, if included in the release.
+
+### Fixed
+
+- Fixed Dialyzer type boundaries around Docker command result handling.
+- Fixed internal environment-to-CLI argument conversion so map input preserves the intended argument order.
+
+### Compatibility
+
+Docker remains the default runtime. The package is still below 1.0.0, so minor 0.x releases may evolve preview APIs.
+
 ## v0.1.0
 
 ### Release scope

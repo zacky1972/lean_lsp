@@ -23,6 +23,15 @@ defmodule LeanLsp.ReleaseProcedureTest do
     assert metadata_doc =~ "release-procedure.md"
   end
 
+  test "release procedure does not contain stale v0.1.0 release commands" do
+    doc = File.read!(@release_doc)
+
+    refute doc =~ "git tag -a v0.1.0"
+    refute doc =~ "git push origin v0.1.0"
+    refute doc =~ "gh release create v0.1.0"
+    refute doc =~ "mix hex.publish --revert 0.1.0"
+  end
+
   test "release procedure covers pre-publish, publish, and post-publish steps" do
     doc = File.read!(@release_doc)
 
@@ -41,12 +50,12 @@ defmodule LeanLsp.ReleaseProcedureTest do
           "hex.pm/packages/lean_lsp",
           "hexdocs.pm/lean_lsp",
           "LEAN_LSP_DOWNSTREAM_DEP=hex",
-          "git tag -a v0.1.0",
-          "git push origin v0.1.0",
-          "gh release create v0.1.0",
+          "git tag -a v0.2.0",
+          "git push origin v0.2.0",
+          "gh release create v0.2.0",
           "mix hex.publish docs",
-          "mix hex.publish --revert 0.1.0",
-          "0.1.1"
+          "mix hex.publish --revert 0.2.0",
+          "0.2.1"
         ] do
       assert doc =~ expected
     end
