@@ -18,7 +18,7 @@ LeanLsp v0.2.0 is a runtime-preview release for the Lean-capable runtime layer. 
 ### Fixed
 
 - Fixed Dialyzer type boundaries around Docker command result handling.
-- Fixed `LeanLsp.Runtime.Env.to_cli_args/2` map handling so map input preserves the intended argument order.
+- Fixed internal environment-to-CLI argument conversion so map input preserves the intended argument order.
 
 ### Compatibility
 

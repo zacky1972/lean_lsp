@@ -9,7 +9,7 @@ It is not a production-ready Lean LSP client yet.
 
 ## Installation
 
-For the v0.1.0 Hex release, add `lean_lsp` to your dependencies:
+For the v0.2.0 Hex release, add `lean_lsp` to your dependencies:
 
 ```elixir
 def deps do
@@ -53,7 +53,7 @@ uses Docker by default.
 
 ### Docker image policy
 
-The v0.1.0 default image is `leanprovercommunity/lean4:latest`. This is a
+The v0.2.0 default image is `leanprovercommunity/lean4:latest`. This is a
 convenience default for the runtime preview, not a reproducibility guarantee.
 For reproducible workflows, pass a pinned tag or immutable digest with
 `:docker_image`:
@@ -153,7 +153,7 @@ The documented runtime defaults are:
 ## Not included yet
 
 The following features are roadmap work and should not be treated as available
-in v0.1.0:
+in v0.2.0:
 
 - A production-ready Lean LSP client.
 - Stable application-level APIs for Lean LSP requests.
@@ -183,7 +183,7 @@ details may change without deprecation during 0.x.
 
 | Milestone | Focus | Outcome |
 | --- | --- | --- |
-| v0.1.0: Foundation/runtime preview | Package metadata, quality gate, architecture notes, runtime configuration, and Docker-backed runtime boundary. | Users can install the package from Hex, read the public stability policy, and experiment with the runtime layer without expecting a complete LSP client. |
+| v0.2.0: Foundation/runtime preview | Package metadata, quality gate, architecture notes, runtime configuration, and Docker-backed and local runtime boundary. | Users can install the package from Hex, read the public stability policy, and experiment with the runtime layer without expecting a complete LSP client. |
 | Next: Minimal Lean LSP client over Docker | Implement the first usable session, transport, and protocol flow over the Docker runtime. | Application code can start a session and send minimal LSP requests to Lean through the Docker-backed runtime. |
 | Later: Integration fixtures and production hardening | Add Lean fixture projects, integration tests, richer LSP methods, and reliability work. | Users can evaluate production readiness based on tested Lean LSP workflows. |
 
@@ -230,9 +230,9 @@ Lean language server
 
 ## Module responsibilities
 
-| Module | v0.1.0 status | Responsibility |
+| Module | v0.2.0 status | Responsibility |
 | --- | --- | --- |
-| `LeanLsp` | Public preview API | Public entry point for application code. In v0.1.0 it validates runtime options and starts runtimes. |
+| `LeanLsp` | Public preview API | Public entry point for application code. In v0.2.0 it validates runtime options and starts runtimes. |
 | `LeanLsp.Runtime` | Public preview API | Runtime behaviour for starting, stopping, and executing commands in a Lean-capable runtime. |
 | `LeanLsp.Runtime.Config` | Public preview API | Runtime option normalization and documented runtime defaults. |
 | `LeanLsp.Runtime.Docker` | Public preview API | Docker-backed implementation of the runtime contract, including image selection, container setup, command execution, and cleanup. |
