@@ -1,6 +1,6 @@
 # Hex package contents
 
-The v0.2.0 Hex package uses an explicit `package[:files]` list so release contents do not depend on Hex defaults.
+The v0.2.1 Hex package uses an explicit `package[:files]` list so release contents do not depend on Hex defaults.
 
 ## Included files
 
@@ -29,7 +29,7 @@ Keeping the whole `docs/` directory in the package prevents future extras from b
 
 ## Runtime source files
 
-The `lib/` directory should contain the runtime implementation intended for v0.2.0.
+The `lib/` directory should contain the runtime implementation intended for v0.2.1.
 
 The public preview runtime modules should include:
 

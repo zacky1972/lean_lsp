@@ -1,6 +1,6 @@
 # Dependency audit
 
-LeanLsp v0.2.0 should expose only dependencies that are needed by package users at runtime.
+LeanLsp v0.2.1 should expose only dependencies that are needed by package users at runtime.
 
 Development tooling must stay in `:dev` and `:test` so it is not part of runtime dependency resolution for downstream applications.
 
@@ -10,7 +10,7 @@ Development tooling must stay in `:dev` and `:test` so it is not part of runtime
 | --- | --- | --- | --- | --- |
 | `docker_availability` | Production/runtime | `LeanLsp.Runtime.Docker` calls `DockerAvailability.check/0` before starting the default Docker-backed runtime. | Yes | Apache-2.0; compatible with this package license. |
 
-Expected Hex dry-run production dependency list for v0.2.0:
+Expected Hex dry-run production dependency list for v0.2.1:
 
 ```text
 docker_availability ~> 1.0
@@ -46,9 +46,9 @@ mix publish.check
 
 `mix publish.check` owns the broader pre-publish path for package build, documentation generation, downstream smoke testing, and Hex dry-run validation.
 
-## Audit expectations for v0.2.0
+## Audit expectations for v0.2.1
 
-Before publishing v0.2.0, confirm:
+Before publishing v0.2.1, confirm:
 
 - production dependencies are limited to dependencies required by runtime users;
 - development and test tooling dependencies have `only: [:dev, :test]` and `runtime: false`;

@@ -2,6 +2,29 @@
 
 # Changelog
 
+## v0.2.1
+
+### Release scope
+
+LeanLsp v0.2.1 is a patch release in the v0.2 runtime-preview line.
+It remains experimental and does not provide a production-ready Lean LSP client.
+
+### Fixed
+
+- Fixed Docker runtime startup for images whose default ENTRYPOINT can reinterpret
+  the managed keepalive container command.
+- Preserved explicit caller-provided Docker ENTRYPOINT overrides.
+
+### Added
+
+- Added Docker integration coverage for the Issue #72 runtime-boundary regression.
+- Added direct Docker ENTRYPOINT diagnostic coverage for the selected Lean image.
+
+### Compatibility
+
+The public runtime-preview API remains compatible with v0.2.0. Docker command
+construction remains preview-internal while LeanLsp is below 1.0.0.
+
 ## v0.2.0
 
 ### Release scope

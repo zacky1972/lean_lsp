@@ -50,11 +50,11 @@ defmodule LeanLsp.ReleaseProcedureTest do
           "hex.pm/packages/lean_lsp",
           "hexdocs.pm/lean_lsp",
           "LEAN_LSP_DOWNSTREAM_DEP=hex",
-          "git tag -a v0.2.0",
-          "git push origin v0.2.0",
-          "gh release create v0.2.0",
+          "git tag -a v0.2.1",
+          "git push origin v0.2.1",
+          "gh release create v0.2.1",
           "mix hex.publish docs",
-          "mix hex.publish --revert 0.2.0",
+          "mix hex.publish --revert 0.2.1",
           "0.2.1"
         ] do
       assert doc =~ expected
