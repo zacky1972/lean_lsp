@@ -86,6 +86,8 @@ defmodule LeanLsp.Runtime.Docker do
     "trap 'exit 0' TERM INT; while true; do sleep 1; done"
   ]
 
+  @default_docker_run_args ["--entrypoint", ""]
+
   @default_start_timeout 30_000
   @default_exec_timeout 30_000
   @default_stop_timeout 15_000
@@ -270,7 +272,7 @@ defmodule LeanLsp.Runtime.Docker do
     config = %{
       container_command: Keyword.get(opts, :container_command, @default_container_command),
       container_name: Keyword.get(opts, :container_name),
-      docker_run_args: Keyword.get(opts, :docker_run_args, []),
+      docker_run_args: docker_run_args(opts),
       env: Keyword.get(opts, :env, []),
       image: Keyword.get(opts, :image, RuntimeConfig.default_docker_image()),
       mounts: Keyword.get(opts, :mounts, []),
@@ -460,4 +462,31 @@ defmodule LeanLsp.Runtime.Docker do
   end
 
   defp valid_mounts?(_mounts), do: false
+
+  defp docker_run_args(opts) do
+    opts
+    |> Keyword.get(:docker_run_args, [])
+    |> ensure_entrypoint_override()
+  end
+
+  defp ensure_entrypoint_override(args) do
+    if entrypoint_overridden?(args) do
+      args
+    else
+      @default_docker_run_args ++ args
+    end
+  end
+
+  defp entrypoint_overridden?(args) do
+    Enum.any?(args, fn
+      "--entrypoint" ->
+        true
+
+      arg when is_binary(arg) ->
+        String.starts_with?(arg, "--entrypoint=")
+
+      _other ->
+        false
+    end)
+  end
 end
