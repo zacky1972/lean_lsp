@@ -1,10 +1,10 @@
-# v0.2.0 release procedure
+# v0.2.1 release procedure
 
-This checklist is for maintainers publishing `lean_lsp` v0.2.0 to Hex.
+This checklist is for maintainers publishing `lean_lsp` v0.2.1 to Hex.
 
-v0.2.0 is a runtime-preview release for the Lean-capable runtime layer. It keeps the package experimental, adds the host-backed local runtime path, and preserves Docker as the default runtime. It is not a production-ready Lean LSP client.
+v0.2.1 is a runtime-preview release for the Lean-capable runtime layer. It keeps the package experimental, adds the host-backed local runtime path, and preserves Docker as the default runtime. It is not a production-ready Lean LSP client.
 
-The goal is to publish v0.2.0 from a clean, current `main` branch with matching metadata, documentation, package contents, release notes, and downstream smoke-test coverage.
+The goal is to publish v0.2.1 from a clean, current `main` branch with matching metadata, documentation, package contents, release notes, and downstream smoke-test coverage.
 
 ## 1. Prepare the release branch
 
@@ -17,7 +17,7 @@ git pull --ff-only origin main
 git status --short
 ```
 
-Confirm that the release branch contains the intended v0.2.0 runtime changes:
+Confirm that the release branch contains the intended v0.2.1 runtime changes:
 
 - `LeanLsp.Runtime.Local` is present and documented if the local runtime is included in this release.
 - Docker remains the default runtime.
@@ -26,7 +26,7 @@ Confirm that the release branch contains the intended v0.2.0 runtime changes:
 - Dialyzer fixes for Docker command result typing and environment CLI argument conversion are included.
 - No private downstream project names or private module names are mentioned in public documentation.
 
-Confirm that these files describe version `0.2.0` consistently:
+Confirm that these files describe version `0.2.1` consistently:
 
 - `mix.exs`
 - `README.md`
@@ -41,7 +41,7 @@ Confirm that these files describe version `0.2.0` consistently:
 - `docs/downstream-smoke-test.md`
 - release-related tests under `test/`
 
-Confirm that `README.md`, `CHANGELOG.md`, and HexDocs still present v0.2.0 as a runtime-preview release, not as a production-ready Lean LSP client.
+Confirm that `README.md`, `CHANGELOG.md`, and HexDocs still present v0.2.1 as a runtime-preview release, not as a production-ready Lean LSP client.
 
 Search for stale release text:
 
@@ -133,7 +133,7 @@ The package should include:
 - `lib/`
 - `docs/`
 
-The runtime source included under `lib/` should include the public runtime modules intended for v0.2.0, including:
+The runtime source included under `lib/` should include the public runtime modules intended for v0.2.1, including:
 
 - `LeanLsp`
 - `LeanLsp.Runtime`
@@ -167,7 +167,7 @@ mix hex.publish --dry-run
 Review the dry-run output for:
 
 - package name: `lean_lsp`
-- version: `0.2.0`
+- version: `0.2.1`
 - description
 - license: `Apache-2.0`
 - links
@@ -187,17 +187,17 @@ Review the package summary printed by Hex. Confirm the version, description, lic
 After the Hex package is published successfully, tag the exact release commit:
 
 ```sh
-git tag -a v0.2.0 -m "v0.2.0"
-git push origin v0.2.0
+git tag -a v0.2.1 -m "v0.2.1"
+git push origin v0.2.1
 ```
 
 Create the GitHub release from the tag:
 
 ```sh
-gh release create v0.2.0 \
+gh release create v0.2.1 \
   --verify-tag \
-  --title "v0.2.0" \
-  --notes "LeanLsp v0.2.0 runtime-preview release."
+  --title "v0.2.1" \
+  --notes "LeanLsp v0.2.1 runtime-preview release."
 ```
 
 The GitHub release notes should point users to:
@@ -205,7 +205,7 @@ The GitHub release notes should point users to:
 - `CHANGELOG.md`
 - the Hex package page
 - HexDocs
-- the source tag `v0.2.0`
+- the source tag `v0.2.1`
 
 If the tag already exists, do not move it after publishing without also deciding how to handle the published Hex version.
 
@@ -215,11 +215,11 @@ After publishing and tagging, verify the public package page and generated docum
 
 - `https://hex.pm/packages/lean_lsp`
 - `https://hexdocs.pm/lean_lsp`
-- `https://hexdocs.pm/lean_lsp/0.2.0`
+- `https://hexdocs.pm/lean_lsp/0.2.1`
 
 Check that Hex shows:
 
-- version `0.2.0`
+- version `0.2.1`
 - package description
 - Apache-2.0 license
 - GitHub link
@@ -238,13 +238,13 @@ Check that HexDocs renders:
 - module responsibilities
 - release procedure
 
-Check that HexDocs source links point to the `v0.2.0` tag.
+Check that HexDocs source links point to the `v0.2.1` tag.
 
 Run the downstream smoke test against the published Hex package:
 
 ```sh
 LEAN_LSP_DOWNSTREAM_DEP=hex \
-LEAN_LSP_HEX_REQUIREMENT="~> 0.2.0" \
+LEAN_LSP_HEX_REQUIREMENT="~> 0.2.1" \
 LEAN_LSP_DOWNSTREAM_DOCKER=skip \
 mix downstream.smoke
 ```
@@ -253,12 +253,12 @@ Use Docker-required mode when Docker runtime verification is intended and Docker
 
 ```sh
 LEAN_LSP_DOWNSTREAM_DEP=hex \
-LEAN_LSP_HEX_REQUIREMENT="~> 0.2.0" \
+LEAN_LSP_HEX_REQUIREMENT="~> 0.2.1" \
 LEAN_LSP_DOWNSTREAM_DOCKER=required \
 mix downstream.smoke
 ```
 
-## 8. Update, revert, or correct a bad v0.2.0 publish
+## 8. Update, revert, or correct a bad v0.2.1 publish
 
 If the published release has a problem, act quickly and document what changed.
 
@@ -270,10 +270,10 @@ mix hex.publish docs
 
 A newly published version of an existing package can be updated or reverted during Hex's update window.
 
-For v0.2.0, use:
+For v0.2.1, use:
 
 ```sh
-mix hex.publish --revert 0.2.0
+mix hex.publish --revert 0.2.1
 ```
 
 Then fix the issue, rerun the full pre-publish validation, and publish again.

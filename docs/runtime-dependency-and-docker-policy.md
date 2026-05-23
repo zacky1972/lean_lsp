@@ -1,6 +1,6 @@
 # Runtime dependency and Docker/local runtime policy
 
-LeanLsp v0.2.0 exposes a Lean-capable runtime preview with two runtime implementations:
+LeanLsp v0.2.1 exposes a Lean-capable runtime preview with two runtime implementations:
 
 - `LeanLsp.Runtime.Docker`
 - `LeanLsp.Runtime.Local`
@@ -53,7 +53,7 @@ For the local runtime path:
 
 ## Default Docker image policy
 
-The v0.2.0 preview default image is:
+The v0.2.1 preview default image is:
 
 ```text
 leanprovercommunity/lean4:latest
@@ -174,7 +174,7 @@ end
 
 When Docker is unavailable, the Docker runtime cannot start and returns `{:error, reason}`.
 
-The exact reason is implementation-specific during the v0.2.0 preview, but common causes include:
+The exact reason is implementation-specific during the v0.2.1 preview, but common causes include:
 
 - Docker is not installed.
 - Docker is not running or is unreachable from the BEAM process.

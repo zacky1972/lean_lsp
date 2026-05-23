@@ -1,16 +1,16 @@
 # Release scope and stability
 
-This document defines the public scope for the v0.2.0 Hex release.
+This document defines the public scope for the v0.2.1 Hex release.
 
 ## Release decision
 
-v0.2.0 is a **runtime-preview** release.
+v0.2.1 is a **runtime-preview** release.
 
-Publishing v0.2.0 to Hex is acceptable only if the package description, README, changelog, and HexDocs consistently describe the release as experimental and preview-only.
+Publishing v0.2.1 to Hex is acceptable only if the package description, README, changelog, and HexDocs consistently describe the release as experimental and preview-only.
 
 The release should not be described as a production-ready Lean LSP client.
 
-## Public contract in v0.2.0
+## Public contract in v0.2.1
 
 The following APIs are stable enough for users to try during the 0.2.x line:
 
@@ -29,15 +29,15 @@ Implementation-specific runtime state, Docker command arguments, generated conta
 
 ## Runtime selection
 
-Docker remains the default runtime in v0.2.0.
+Docker remains the default runtime in v0.2.1.
 
 The default runtime path is intended for reproducible and CI-oriented workflows where Docker is available and the selected image can be pulled or is already present locally.
 
 The local runtime path is intended for development environments where Lean, Lake, or related tools are already installed on the host machine. It avoids starting Docker, but it depends on the host environment.
 
-## Explicitly out of scope for v0.2.0
+## Explicitly out of scope for v0.2.1
 
-The following are intentionally unavailable or unstable in v0.2.0:
+The following are intentionally unavailable or unstable in v0.2.1:
 
 - A production-ready Lean LSP client.
 - Stable public APIs for Lean LSP requests or editor-style queries.
@@ -61,6 +61,6 @@ Undocumented modules, private helpers, internal process state, Docker command co
 
 ## User-facing readiness statement
 
-A user installing `lean_lsp` v0.2.0 from Hex should understand the following before adopting it:
+A user installing `lean_lsp` v0.2.1 from Hex should understand the following before adopting it:
 
-> LeanLsp v0.2.0 is an experimental runtime-preview package. It can be used to explore runtime configuration, Docker-backed command execution, and host-backed local command execution, but it is not yet a production-ready Lean LSP client.
+> LeanLsp v0.2.1 is an experimental runtime-preview package. It can be used to explore runtime configuration, Docker-backed command execution, and host-backed local command execution, but it is not yet a production-ready Lean LSP client.

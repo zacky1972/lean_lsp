@@ -1,7 +1,7 @@
 defmodule LeanLsp.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @source_url "https://github.com/zacky1972/lean_lsp"
   @hexdocs_url "https://hexdocs.pm/lean_lsp"
 

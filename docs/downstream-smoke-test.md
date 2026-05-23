@@ -4,7 +4,7 @@ The downstream smoke test verifies that `lean_lsp` can be consumed from a fresh 
 
 A package can pass its own unit tests but still fail when compiled as a dependency, so this check exercises the external dependency boundary.
 
-## Before publishing v0.2.0
+## Before publishing v0.2.1
 
 Run the smoke test with the local repository as a path dependency:
 
@@ -34,20 +34,20 @@ Use `skip` when validating release packaging in an environment where Docker is n
 
 Use `required` when validating an environment that must be able to start the Docker-backed runtime.
 
-## After publishing v0.2.0
+## After publishing v0.2.1
 
-After `lean_lsp` v0.2.0 is published on Hex, repeat the same smoke test with the real Hex dependency:
+After `lean_lsp` v0.2.1 is published on Hex, repeat the same smoke test with the real Hex dependency:
 
 ```sh
 LEAN_LSP_DOWNSTREAM_DEP=hex \
-LEAN_LSP_HEX_REQUIREMENT="~> 0.2.0" \
+LEAN_LSP_HEX_REQUIREMENT="~> 0.2.1" \
 mix downstream.smoke
 ```
 
 The default Hex requirement is:
 
 ```text
-~> 0.2.0
+~> 0.2.1
 ```
 
 Override it when validating a specific published follow-up version:
@@ -64,7 +64,7 @@ When Docker is not available in the release environment, validate the published 
 
 ```sh
 LEAN_LSP_DOWNSTREAM_DEP=hex \
-LEAN_LSP_HEX_REQUIREMENT="~> 0.2.0" \
+LEAN_LSP_HEX_REQUIREMENT="~> 0.2.1" \
 LEAN_LSP_DOWNSTREAM_DOCKER=skip \
 mix downstream.smoke
 ```
@@ -75,7 +75,7 @@ When Docker is available and Docker runtime startup should be verified:
 
 ```sh
 LEAN_LSP_DOWNSTREAM_DEP=hex \
-LEAN_LSP_HEX_REQUIREMENT="~> 0.2.0" \
+LEAN_LSP_HEX_REQUIREMENT="~> 0.2.1" \
 LEAN_LSP_DOWNSTREAM_DOCKER=required \
 mix downstream.smoke
 ```

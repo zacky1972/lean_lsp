@@ -2,7 +2,7 @@
 
 This note records the module boundaries for LeanLsp.
 
-In v0.2.0, the runtime layer is the supported preview surface and the full LSP client layer is roadmap work. For the v0.2.0 public contract and compatibility policy, see [Release scope and stability](release-scope-and-stability.md).
+In v0.2.1, the runtime layer is the supported preview surface and the full LSP client layer is roadmap work. For the v0.2.1 public contract and compatibility policy, see [Release scope and stability](release-scope-and-stability.md).
 
 ## Architecture flow
 
@@ -24,11 +24,11 @@ Application code
 
 `LeanLsp.Runtime.Local` owns host-backed execution.
 
-`LeanLsp.Session`, `LeanLsp.Transport`, and `LeanLsp.Protocol` are the intended LSP client-layer boundaries, but they should not be presented as production-ready public APIs in v0.2.0.
+`LeanLsp.Session`, `LeanLsp.Transport`, and `LeanLsp.Protocol` are the intended LSP client-layer boundaries, but they should not be presented as production-ready public APIs in v0.2.1.
 
 ## Responsibility map
 
-| Module | Owns | Does not own | v0.2.0 status |
+| Module | Owns | Does not own | v0.2.1 status |
 | --- | --- | --- | --- |
 | `LeanLsp` | Public entry point for application code. It validates user options, selects or configures a runtime, and starts runtimes. | Docker internals, host process internals, JSON-RPC framing, transport loops, or low-level protocol parsing. | Public preview. |
 | `LeanLsp.Runtime` | The runtime contract for starting, stopping, and executing commands in a Lean-capable runtime. It defines runtime callbacks and normalizes runtime results. | LSP request identifiers, document state, protocol payloads, Docker command details, or local host command internals. | Public preview. |
